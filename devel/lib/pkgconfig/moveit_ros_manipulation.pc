@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_ros_manipulation
+Description: Description of moveit_ros_manipulation
+Version: 0.6.5
+Cflags: -I/home/john/moveit/devel/include -I/home/john/moveit/src/moveit_ros/manipulation/pick_place/include -I/home/john/moveit/src/moveit_ros/manipulation/move_group_pick_place_capability/include
+Libs: -L/home/john/moveit/devel/lib -lmoveit_pick_place_planner
+Requires: moveit_core moveit_ros_planning

@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_resources
+Description: Description of moveit_resources
+Version: 0.5.0
+Cflags: -I/home/john/moveit/src/moveit_resources/include
+Libs: -L/home/john/moveit/devel/lib 
+Requires: 

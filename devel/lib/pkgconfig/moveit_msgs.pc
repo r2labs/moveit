@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_msgs
+Description: Description of moveit_msgs
+Version: 0.6.1
+Cflags: -I/home/john/moveit/devel/include
+Libs: -L/home/john/moveit/devel/lib 
+Requires: std_msgs actionlib_msgs sensor_msgs geometry_msgs trajectory_msgs shape_msgs object_recognition_msgs octomap_msgs

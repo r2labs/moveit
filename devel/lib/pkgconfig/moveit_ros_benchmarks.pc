@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_ros_benchmarks
+Description: Description of moveit_ros_benchmarks
+Version: 0.6.5
+Cflags: -I/home/john/moveit/src/moveit_ros/benchmarks/benchmarks/include
+Libs: -L/home/john/moveit/devel/lib -lmoveit_benchmark_execution
+Requires: moveit_ros_planning moveit_ros_warehouse

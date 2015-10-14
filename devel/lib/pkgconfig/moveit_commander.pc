@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_commander
+Description: Description of moveit_commander
+Version: 0.5.7
+Cflags: 
+Libs: -L/home/john/moveit/devel/lib 
+Requires: 

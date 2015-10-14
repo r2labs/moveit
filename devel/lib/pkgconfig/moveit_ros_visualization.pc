@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_ros_visualization
+Description: Description of moveit_ros_visualization
+Version: 0.6.5
+Cflags: -I/home/john/moveit/src/moveit_ros/visualization/rviz_plugin_render_tools/include -I/home/john/moveit/src/moveit_ros/visualization/robot_state_rviz_plugin/include -I/home/john/moveit/src/moveit_ros/visualization/planning_scene_rviz_plugin/include -I/home/john/moveit/src/moveit_ros/visualization/motion_planning_rviz_plugin/include -I/home/john/moveit/src/moveit_ros/visualization/trajectory_rviz_plugin/include
+Libs: -L/home/john/moveit/devel/lib -lmoveit_rviz_plugin_render_tools -lmoveit_robot_state_rviz_plugin_core -lmoveit_motion_planning_rviz_plugin_core -lmoveit_trajectory_rviz_plugin_core -lmoveit_planning_scene_rviz_plugin_core
+Requires: moveit_ros_planning_interface moveit_ros_robot_interaction

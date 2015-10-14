@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_simple_controller_manager
+Description: Description of moveit_simple_controller_manager
+Version: 0.5.6
+Cflags: 
+Libs: -L/home/john/moveit/devel/lib 
+Requires: moveit_core

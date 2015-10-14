@@ -1,0 +1,8 @@
+prefix=/home/john/moveit/devel
+
+Name: moveit_ros_benchmarks_gui
+Description: Description of moveit_ros_benchmarks_gui
+Version: 0.6.5
+Cflags: 
+Libs: -L/home/john/moveit/devel/lib 
+Requires: 
