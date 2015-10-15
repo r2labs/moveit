@@ -1,0 +1,13 @@
+controller_list:
+ - name: manipulator
+   action_ns: follow_joint_trajectory
+   type: FollowJointTrajectory
+   default: true
+   joints:
+     - base_joint
+     - shoulder_joint
+     - elbow
+     - wrist
+     - center_point
+     - left_gripper
+     - right_gripper
