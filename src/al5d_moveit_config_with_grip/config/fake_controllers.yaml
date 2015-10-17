@@ -1,0 +1,10 @@
+controller_list:
+  - name: fake_manipulator_controller
+    joints:
+      - base_joint
+      - shoulder_joint
+      - elbow
+      - wrist
+  - name: fake_gripper_controller
+    joints:
+      - left_gripper
