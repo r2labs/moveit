@@ -4,39 +4,46 @@
 import cherrypy
 import os, string
 
+from jinja2 import Environment, FileSystemLoader
+env = Environment(loader=FileSystemLoader('templates'))
+
 class SimpleUserInterface(object):
 
-    site_header = """<html> <head>
-                              <link href="/static/css/style.css" rel="stylesheet">
-                            </head>
-                            <body>
-                  """
-    site_end = """</body> </html>"""
+    def __init__(self):
+        self.site_header = env.get_template('site_header.html').render()
+        self.site_end = env.get_template('site_end.html').render()
+
+    def siteify(self, body):
+        return (self.site_header,body,self.site_end)
+
+    def parse_coordinates(self, coordinates):
+        coords = []
+        for i in coordinates.strip("()").split(","):
+            try:
+                coords.append(float(i))
+            except ValueError:
+                coords.append(-1)
+        return tuple(coords)
 
     @cherrypy.expose
     def index(self):
-        site_body = """<form method="get" action="generate">
-                         pick from: <input type="text" value="(x,y,z)" name="pick_coordinates" />
-                         place: <input type="text" value="(x,y,z)" name="place_coordinates" />
-                         <button type="submit">Show me what you got</button>
-                       </form>"""
-        return (self.site_header,site_body,self.site_end)
-
-    def parse_coordinates(self, coordinates):
-        try:
-            x,y,z = (int(i) for i in coordinates.strip("()").split(","))
-        except ValueError:
-            x,y,z = (-1, -1, -1)
-            # TODO: implement out of bounds interpolation/detection
-        return (x,y,z)
+        index = env.get_template('index.html') \
+                   .render(action='parse_path',
+                           pick_text='Pick object from:', pick_name='pick_coordinates',
+                           place_text='Place object at:', place_name='place_coordinates',
+                           default_text='(x,y,z)',
+                           submit_button_text='Start')
+        return self.siteify(index)
 
     @cherrypy.expose
-    def generate(self, pick_coordinates, place_coordinates):
-        cherrypy.session['pick'] = self.parse_coordinates(pick_coordinates)
-        cherrypy.session['place'] = self.parse_coordinates(place_coordinates)
-        cherrypy.session['path_string'] = "%s -> %s" % \
-                                          (cherrypy.session['pick'], cherrypy.session['place'])
-        return cherrypy.session['path_string']
+    def parse_path(self, pick_coordinates, place_coordinates):
+        pick  = self.parse_coordinates(pick_coordinates)
+        place  = self.parse_coordinates(place_coordinates)
+        path = "%s -> %s" % (pick, place)
+        cherrypy.session['pick'] = pick
+        cherrypy.session['place'] = place
+        cherrypy.session['path_string'] = path
+        return self.siteify(path)
 
     @cherrypy.expose
     def display(self):
