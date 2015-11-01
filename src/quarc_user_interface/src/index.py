@@ -56,7 +56,11 @@ if __name__ == '__main__':
         '/static': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': './public'
-        }
+        },
+	"/images":{
+	     'tools.staticdir.on': True,
+	     'tools.staticdir.dir': '../imgs'
+	}
     }
 
     cherrypy.config.update({'server.socket_host': '127.0.0.1'})
