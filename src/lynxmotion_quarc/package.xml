@@ -1,0 +1,20 @@
+<package>
+  <name>lynxmotion_quarc</name>
+  <version>0.0.0</version>
+  <description>The lynxmotion_quarc package</description>
+  <author>QuARC</author>
+  <maintainer email="ee364d-list@lists.r2labs.us">QuARC</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <!-- <run_depend>rviz</run_depend> -->
+  <run_depend>xacro</run_depend>
+  <run_depend>lynxmotion_tm4c</run_depend>
+  <run_depend>quarc_user_interface</run_depend>
+  <build_depend>quarc_user_interface</build_depend>
+  <export>
+    <architecture_independent />
+  </export>
+</package>
