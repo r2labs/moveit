@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import cherrypy
+import os, string
+
+class SimpleUserInterface(object):
+
+    site_header = """<html> <head>
+                              <link href="/static/css/style.css" rel="stylesheet">
+                            </head>
+                            <body>
+                  """
+    site_end = """</body> </html>"""
+
+    @cherrypy.expose
+    def index(self):
+        site_body = """<form method="get" action="generate">
+                         pick from: <input type="text" value="(x,y,z)" name="pick_coordinates" />
+                         place: <input type="text" value="(x,y,z)" name="place_coordinates" />
+                         <button type="submit">Show me what you got</button>
+                       </form>"""
+        return (self.site_header,site_body,self.site_end)
+
+    def parse_coordinates(self, coordinates):
+        try:
+            x,y,z = (int(i) for i in coordinates.strip("()").split(","))
+        except ValueError:
+            x,y,z = (-1, -1, -1)
+            # TODO: implement out of bounds interpolation/detection
+        return (x,y,z)
+
+    @cherrypy.expose
+    def generate(self, pick_coordinates, place_coordinates):
+        cherrypy.session['pick'] = self.parse_coordinates(pick_coordinates)
+        cherrypy.session['place'] = self.parse_coordinates(place_coordinates)
+        cherrypy.session['path_string'] = "%s -> %s" % \
+                                          (cherrypy.session['pick'], cherrypy.session['place'])
+        return cherrypy.session['path_string']
+
+    @cherrypy.expose
+    def display(self):
+        return cherrypy.session['path_string']
+
+if __name__ == '__main__':
+    conf = {
+        '/': {
+            'tools.sessions.on': True,
+            'tools.staticdir.root': os.path.abspath(os.getcwd())
+        },
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': './public'
+        }
+    }
+
+    cherrypy.config.update({'server.socket_host': 'localhost'})
+    cherrypy.config.update({'server.socket_port': 8080})
+    cherrypy.quickstart(SimpleUserInterface(), '/', conf)
