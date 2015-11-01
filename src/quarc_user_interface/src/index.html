@@ -28,10 +28,9 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def index(self):
         index = env.get_template('index.html') \
-                   .render(action='parse_path',
+                   .render(action='parse_path', default_text='(x,y,z)',
                            pick_text='Pick object from:', pick_name='pick_coordinates',
                            place_text='Place object at:', place_name='place_coordinates',
-                           default_text='(x,y,z)',
                            submit_button_text='Start')
         return self.siteify(index)
 
@@ -43,11 +42,10 @@ class SimpleUserInterface(object):
         cherrypy.session['pick'] = pick
         cherrypy.session['place'] = place
         cherrypy.session['path_string'] = path
-        return self.siteify(path)
-
-    @cherrypy.expose
-    def display(self):
-        return cherrypy.session['path_string']
+        page = env.get_template('parse_path.html') \
+                  .render(action='index', path=path, 
+                          submit_button_text='Plan another path')
+        return self.siteify(page)
 
 if __name__ == '__main__':
     conf = {
