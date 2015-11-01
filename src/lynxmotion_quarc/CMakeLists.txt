@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_service_files(
   FILES
-  user_server.srv
+  user_input.srv
 )
 
 generate_messages(
