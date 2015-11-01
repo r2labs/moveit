@@ -1,5 +1,5 @@
-controller_list:
+controller_list_test:
   - name: ""
     action_ns: joint_trajectory_action
     type: FollowJointTrajectory
-    joints: [base_joint, shoulder_joint, elbow, wrist]
+    joints: [joint_1, joint_2, joint_3, joint_4] 
