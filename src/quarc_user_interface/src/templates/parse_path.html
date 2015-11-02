@@ -1,22 +1,10 @@
-<style>
-
-button, input, select, textarea{
-	font-family: courier;
-	font-size: 100%;
-}
-</style>
-
 <form method="get" action="{{ action }}">
 <div style="width: 100%;">
-<div style="width: 20%; float: left; display: inline-block;"><b>
-Planning path:</b></div>
-<div style="width: 80%; display: inline-block;"><b>
-{{ path }}
-<br><br><br><br><br></b></div>
-
-
-<div style="width: 20%; float: left; display: inline-block;"><b><br></b></div>
-<div style="width: 80%; display: inline-block;"><button type="submit"><b>{{ submit_button_text }}</b></button></div>
+<div style="width: 50%; float: left; display: inline-block; text-align:right"><b>Planning path: </b></div>
+<div style="width: 50%; display: inline-block; text-align:left"><b>
+{{ path }}</b></div>
 </div>
+
+<button type="submit"><b>{{ submit_button_text }}</b></button></div>
 
 </form>
