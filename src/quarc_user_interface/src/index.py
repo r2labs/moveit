@@ -57,9 +57,13 @@ if __name__ == '__main__':
             'tools.staticdir.on': True,
             'tools.staticdir.dir': './public'
         },
-	"/images":{
+	'/images':{
 	     'tools.staticdir.on': True,
 	     'tools.staticdir.dir': '../imgs'
+	},
+	'/favicon.ico':{
+	     'tools.staticfile.on': True,
+	     'tools.staticfile.filename': '/images/favicon.ico'
 	}
     }
 
