@@ -7,4 +7,5 @@
   <node name="lynxmotion_tm4c_driver" pkg="lynxmotion_tm4c" type="tm4c_node" output="screen">
     <rosparam command="load" file="$(find lynxmotion_quarc)/config/al5d.config" />
   </node>
+  <node name="chatter_driver" pkg="chatter_tester" type="chatter_node" output="screen"/>
 </launch>
