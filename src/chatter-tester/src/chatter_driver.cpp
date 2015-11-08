@@ -1,6 +1,5 @@
 #include "chatter_driver.hpp"
 #include "std_msgs/String.h"
-#include "math.h"
 #include <sstream>
 #include <trajectory_msgs/JointTrajectory.h>
 
