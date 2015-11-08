@@ -2,3 +2,4 @@ build/
 devel/
 default_warehouse_mongo_db/
 *~
+.DS_Store
