@@ -137,6 +137,7 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
 float chatter_driver::lerp(float x, float x_min, float x_max, float y_min, float y_max) {
     if (x > x_max) { return y_max; }
     else if (x < x_min) { return y_min; }
+    /* TODO: send information to the IFC */
     return y_min + (y_min - y_max)*((x - x_min)/(x_max - x_min));
 }
 
