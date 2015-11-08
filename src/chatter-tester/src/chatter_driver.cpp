@@ -1,5 +1,6 @@
 #include "chatter_driver.hpp"
 #include "std_msgs/String.h"
+#include "srv/user_input.h"
 #include "math.h"
 #include <sstream>
 #include <trajectory_msgs/JointTrajectory.h>
@@ -52,11 +53,13 @@ void chatter_driver::spin() {
 }
 
 /* TODO: get coordinates from python website */
-void chatter_driver::get_coords(float& x, float& y, float& z, float& ga) {
-    x = 0.0;
-    y = 200.0;
-    z = 1.0;
+void chatter_driver::get_coords(const srv::user_input::ConstPtr& msg) {
+    x = msg->pick_X;
+    y = msg->pick_Y;
+    z = msg->pick_Z;
     ga = 0.0;
+    
+    /*TODO: FIGURE OUT WHERE TO STORE PLACE YOURSELF :)*/
 }
 
 int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
