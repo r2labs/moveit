@@ -7,14 +7,31 @@ import os, string
 from jinja2 import Environment, FileSystemLoader
 env = Environment(loader=FileSystemLoader('templates'))
 
+import rospy
+from quarc_user_interface.msg import user_input
+
+
 class SimpleUserInterface(object):
 
     def __init__(self):
         self.site_header = env.get_template('site_header.html').render()
         self.site_end = env.get_template('site_end.html').render()
+        #TODO: HOW DOES THE NODE HANDLER ADVERTISE?
+        self.publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
+        rospy.init_node('quarc_user_interface')
+    
 
     def siteify(self, body):
         return (self.site_header,body,self.site_end)
+    
+    def publish():
+        msg = user_input()
+        msg.pick_X, msg.pick_Y, msg.pick_Z = cherrypy.session['raw'][0]
+        msg.place_X, msg.place_Y, msg.place_Z = cherrypy.session['raw'][1]
+        self.pubisher.publish(msg)
+        rospy.spinOnce()
+    
+    
 
     def parse_coordinates(self, coordinates):
         coords = []
@@ -39,12 +56,14 @@ class SimpleUserInterface(object):
         pick  = self.parse_coordinates(pick_coordinates)
         place  = self.parse_coordinates(place_coordinates)
         path = "%s -> %s" % (pick, place)
+        cherrypy.session['raw'] = (pick, place)
         cherrypy.session['pick'] = pick
         cherrypy.session['place'] = place
         cherrypy.session['path_string'] = path
         page = env.get_template('parse_path.html') \
                   .render(action='index', path=path, 
                           submit_button_text='Plan another path')
+        publish()
         return self.siteify(page)
 
 if __name__ == '__main__':
