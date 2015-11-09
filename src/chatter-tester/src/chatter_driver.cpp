@@ -1,5 +1,6 @@
 #include "chatter_driver.hpp"
 #include "std_msgs/String.h"
+#include "srv/user_input.h"
 #include "math.h"
 #include <sstream>
 #include <trajectory_msgs/JointTrajectory.h>
@@ -52,62 +53,46 @@ void chatter_driver::spin() {
 }
 
 /* TODO: get coordinates from python website */
-void chatter_driver::get_coords(float& x, float& y, float& z, float& ga) {
-    x = 0.0;
-    y = 200.0;
-    z = 200.0;
+void chatter_driver::get_coords(const srv::user_input::ConstPtr& msg) {
+    x = msg->pick_X;
+    y = msg->pick_Y;
+    z = msg->pick_Z;
     ga = 0.0;
+    
+    /*TODO: FIGURE OUT WHERE TO STORE PLACE YOURSELF :)*/
 }
 
 int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
                              float& bas_us, float& shl_us, float& elb_us,
                              float& wri_us) {
 
-    //grip angle in radians for use in calculations
     float grip_angle_r = radians(grip_angle_degrees);
-
-    // Base angle and radial distance from x,y coordinates
-    float bas_angle_r = atan2(x, y);
-    float rdist = sqrt((x * x) + (y * y));
-
-    // rdist is y coordinate for the arm
-    y = rdist;
-
-    // Grip offsets calculated based on grip angle
-    float grip_off_z = (sin(grip_angle_r)) * GRIPPER;
-    float grip_off_y = (cos(grip_angle_r)) * GRIPPER;
-
-    // Wrist position
-    float wrist_z = (z - grip_off_z) - BASE_HGT;
-    float wrist_y = y - grip_off_y;
-
-    // Shoulder to wrist distance (AKA sw)
-    float s_w = (wrist_z * wrist_z) + (wrist_y * wrist_y);
-    float s_w_sqrt = sqrt(s_w);
-
-    // s_w angle to ground
-    float a1 = atan2(wrist_z, wrist_y);
-
-    // s_w angle to humerus
-    float a2 = acos(((hum_sq - uln_sq) + s_w) / (2 * HUMERUS * s_w_sqrt));
-
-    // Shoulder angle
-    float shl_angle_r = a1 + a2;
-    // If result is NAN or Infinity, the desired arm position is not possible
-    if (isnan(shl_angle_r) || isinf(shl_angle_r))
+    float base_angle_r = atan2(y, -x);
+    float r = sqrt(pow(x,2) + pow(y,2));
+    float z_prime = z - BASE_HGT - (sin(grip_angle_r)*GRIPPER);
+    float r_prime = r - (cos(grip_angle_r)*GRIPPER);
+    float q = sqrt(pow(r_prime,2) + pow(z_prime,2));
+    if(y>=0)
+    {
+        float shoulder_angle_r = atan2(z_prime, r_prime) + acos((pow(HUMERUS,2)+pow(q,2)-pow(ULNA,2))/(2*HUMERUS*q));
+    }
+    else
+    {
+        float shoulder_angle_r = atan2(z_prime, -r_prime) + acos((pow(HUMERUS,2)+pow(q,2)-pow(ULNA,2))/(2*HUMERUS*q));
+    }
+    if (isnan(shoulder_angle_r) || isinf(shoulder_angle_r))
+    {
         return IK_ERROR;
-    float shl_angle_d = degrees(shl_angle_r);
+    }
 
-    // Elbow angle
-    float elb_angle_r = acos((hum_sq + uln_sq - s_w) / (2 * HUMERUS * ULNA));
-    // If result is NAN or Infinity, the desired arm position is not possible
-    if (isnan(elb_angle_r) || isinf(elb_angle_r))
-        return IK_ERROR;
-    float elb_angle_d = degrees(elb_angle_r);
-    float elb_angle_dn = -(180.0 - elb_angle_d);
+    
+    float elbow_angle_r = acos((pow(HUMERUS,2)+pow(ULNA,2)-pow(q,2))/(2*HUMERUS*ULNA));
+    float wrist_angle_r = (3*M_PI/2) - elbow_angle_r - shoulder_angle_r + grip_angle_r;
+    
+    shl_angle_d = degrees(shoulder_angle_r);
+    elb_angle_d = degrees(elbow_angle_r);
+    wri_angle_d = degrees(wrist_angle_r);
 
-    // Wrist angle
-    float wri_angle_d = (grip_angle_degrees - elb_angle_dn) - shl_angle_d;
 
     // Calculate servo angles
     // Calc relative to servo midpoint to allow compensation for servo alignment
@@ -120,7 +105,7 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
     if (bas_pos < BAS_MIN || bas_pos > BAS_MAX || shl_pos < SHL_MIN || shl_pos > SHL_MAX || elb_pos < ELB_MIN || elb_pos > ELB_MAX || wri_pos < WRI_MIN || wri_pos > WRI_MAX)
         return IK_ERROR;
 
-    //TODO: This block should call a function that sends microseconds to IFC
+    //TODO: This block should call a function that sends microseconds to TM4C
     // bas_us = lerp(bas_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
     // shl_us = lerp(shl_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
     // elb_us = lerp(elb_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
@@ -129,14 +114,28 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
     shl_us = radians(shl_pos);
     elb_us = radians(elb_pos);
     wri_us = radians(wri_pos);
+    
+    
+    
+    //TODO: ADD GRIP CLOSE/OPEN
 }
 
 float chatter_driver::lerp(float x, float x_min, float x_max, float y_min, float y_max) {
     if (x > x_max) { return y_max; }
     else if (x < x_min) { return y_min; }
+    /* TODO: send information to the IFC */
     return y_min + (y_min - y_max)*((x - x_min)/(x_max - x_min));
 }
 
+void chatter_driver::grip_close()
+{
+    //TODO: add command to close grip
+}
+
+void chatter_driver::grip_open()
+{
+    //TODO: add command to open grip
+}
 
 
 
