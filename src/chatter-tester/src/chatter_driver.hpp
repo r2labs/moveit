@@ -23,6 +23,9 @@ public:
                 float& bas_us, float& shl_us, float& elb_us,
                 float& wri_us);
     float lerp(float x, float x_min, float x_max, float y_min, float y_max);
+    
+    void grip_close();
+    void grip_open();
 
     inline double degrees(double radians) {
         return radians * (180.0 / M_PI);
