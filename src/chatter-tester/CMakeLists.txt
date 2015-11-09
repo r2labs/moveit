@@ -1,12 +1,23 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(chatter_tester)
 
-find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs trajectory_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp message_generation 
+             std_msgs sensor_msgs trajectory_msgs)
+
+add_service_files(
+  FILES
+  user_input.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
    # INCLUDE_DIRS include
    LIBRARIES chatter_driver chatter_driver
-   CATKIN_DEPENDS roscpp
+   CATKIN_DEPENDS roscpp message_runtime
 )
 
 include_directories(include
