@@ -72,16 +72,13 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
     float z_prime = z - BASE_HGT - (sin(grip_angle_r)*GRIPPER);
     float r_prime = r - (cos(grip_angle_r)*GRIPPER);
     float q = sqrt(pow(r_prime,2) + pow(z_prime,2));
-    if(y>=0)
-    {
+    if(y>=0) {
         float shoulder_angle_r = atan2(z_prime, r_prime) + acos((pow(HUMERUS,2)+pow(q,2)-pow(ULNA,2))/(2*HUMERUS*q));
     }
-    else
-    {
+    else {
         float shoulder_angle_r = atan2(z_prime, -r_prime) + acos((pow(HUMERUS,2)+pow(q,2)-pow(ULNA,2))/(2*HUMERUS*q));
     }
-    if (isnan(shoulder_angle_r) || isinf(shoulder_angle_r))
-    {
+    if (isnan(shoulder_angle_r) || isinf(shoulder_angle_r)) {
         return IK_ERROR;
     }
 
