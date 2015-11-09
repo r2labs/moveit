@@ -55,7 +55,7 @@ void chatter_driver::spin() {
 void chatter_driver::get_coords(float& x, float& y, float& z, float& ga) {
     x = 0.0;
     y = 200.0;
-    z = 1.0;
+    z = 200.0;
     ga = 0.0;
 }
 
