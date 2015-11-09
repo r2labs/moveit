@@ -87,17 +87,12 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
 
     
     float elbow_angle_r = acos((pow(HUMERUS,2)+pow(ULNA,2)-pow(q,2))/(2*HUMERUS*ULNA));
-    float wrist_angle_r = (3*M_PI/2) - elbow_anlge_r - shoulder_angle_r + grip_angle_r;
-    //TODO: ADD GRIP CLOSE/OPEN
+    float wrist_angle_r = (3*M_PI/2) - elbow_angle_r - shoulder_angle_r + grip_angle_r;
     
-    
+    shl_angle_d = degrees(shoulder_angle_r);
+    elb_angle_d = degrees(elbow_angle_r);
+    wri_angle_d = degrees(wrist_angle_r);
 
-    
-    
-    
-    
-    
-    
 
     // Calculate servo angles
     // Calc relative to servo midpoint to allow compensation for servo alignment
@@ -110,7 +105,7 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
     if (bas_pos < BAS_MIN || bas_pos > BAS_MAX || shl_pos < SHL_MIN || shl_pos > SHL_MAX || elb_pos < ELB_MIN || elb_pos > ELB_MAX || wri_pos < WRI_MIN || wri_pos > WRI_MAX)
         return IK_ERROR;
 
-    //TODO: This block should call a function that sends microseconds to IFC
+    //TODO: This block should call a function that sends microseconds to TM4C
     // bas_us = lerp(bas_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
     // shl_us = lerp(shl_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
     // elb_us = lerp(elb_pos, 0, 180, SERVO_MIN_US, SERVO_MAX_US);
@@ -119,6 +114,10 @@ int chatter_driver::set_arm(float x, float y, float z, float grip_angle_degrees,
     shl_us = radians(shl_pos);
     elb_us = radians(elb_pos);
     wri_us = radians(wri_pos);
+    
+    
+    
+    //TODO: ADD GRIP CLOSE/OPEN
 }
 
 float chatter_driver::lerp(float x, float x_min, float x_max, float y_min, float y_max) {
