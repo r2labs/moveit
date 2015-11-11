@@ -8,4 +8,5 @@
     <rosparam command="load" file="$(find lynxmotion_quarc)/config/al5d.config" />
   </node>
   <node name="chatter_driver" pkg="chatter_tester" type="chatter_node" output="screen"/>
+  <node name="quarc_user_interface" pkg="quarc_user_interface" type="index.py" output="screen"/>
 </launch>
