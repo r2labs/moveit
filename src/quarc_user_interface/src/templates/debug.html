@@ -1,0 +1,30 @@
+<form method="get" action="{{ action }}">
+
+<!-- Pick text/entry -->
+<div style="width: 100%;">
+<div style="width: 50%; float: left; display: inline-block; text-align:right;"><b>{{ pick_text }} </b></div>
+<div style="width: 50%; display: inline-block; text-align:left"><b>
+<input type="text" value="{{ default_pick_text }}" name="{{ pick_name }}"/>
+</b></div>
+
+<div style="width: 100%; display: inline-block;"><br></div>
+
+<!-- Place text/entry -->
+<div style="width: 50%; float: left; display: inline-block; text-align:right;"><b>{{ place_text }} </b></div>
+<div style="width: 50%; display: inline-block; text-align:left"><b>
+<input type="text" value="{{ default_place_text }}" name="{{ place_name }}"/>
+</b></div>
+
+</div>
+
+<!-- Gripper toggle checkbox -->
+<div style="width: 50%; float: left; display: inline-block; text-align:right;"><b>{{ place_text }} </b></div>
+<div style="width: 50%; display: inline-block; text-align:left"><b>
+<input type="checkbox" name="{{ gripper_box_name }}" {{ gripper_checked }}/>
+</b></div>
+
+</div>
+
+<button type="submit"><b>{{ submit_button_text }}</b></button>
+
+</form>

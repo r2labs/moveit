@@ -79,6 +79,37 @@ class SimpleUserInterface(object):
 
 
     @cherrypy.expose
+    def debug(self, pick_coordinates = None, place_coordinates = None,
+              gripper_open = True):
+        try:
+            pick  = self.parse_coordinates(pick_coordinates)
+            place  = self.parse_coordinates(place_coordinates)
+            path = "%s -> %s" % (pick, place)
+            cherrypy.session['raw'] = (pick, place)
+            cherrypy.session['pick'] = pick
+            cherrypy.session['place'] = place
+            cherrypy.session['path_string'] = path
+            self.publish()
+        except CoordinatesInvalidException:
+            # try, try again
+            pick_coordinates = '(x,y,z)'
+            place_coordinates = '(x,y,z)'
+
+        index = env.get_template('debug.html') \
+                   .render(action='debug',
+                           default_pick_text=place_coordinates,
+                           default_place_text=pick_coordinates,
+                           pick_text='Pick object from:',
+                           pick_name='pick_coordinates',
+                           place_text='Place object at:',
+                           place_name='place_coordinates',
+                           submit_button_text='Start',
+                           gripper_checked='checked' if not gripper_open else '',
+                           gripper_box_text='Close gripper',
+                           gripper_box_name='gripper_open')
+        return self.siteify(index)
+
+
     # @cherrypy.expose
     # def parse_path(self, pick_coordinates, place_coordinates):
     #     pick  = self.parse_coordinates(pick_coordinates)
