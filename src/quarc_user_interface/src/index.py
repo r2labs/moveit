@@ -34,6 +34,7 @@ class SimpleUserInterface(object):
         msg = user_input()
         msg.pick_X, msg.pick_Y, msg.pick_Z = cherrypy.session['raw'][0]
         msg.place_X, msg.place_Y, msg.place_Z = cherrypy.session['raw'][1]
+        msg.gripper_open = cherrypy.session['gripper_open']
         self.publisher.publish(msg)
 
 
@@ -60,6 +61,7 @@ class SimpleUserInterface(object):
             cherrypy.session['pick'] = pick
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
+            cherrypy.session['gripper_open'] = True
             self.publish()
         except CoordinatesInvalidException:
             # try, try again
@@ -89,6 +91,7 @@ class SimpleUserInterface(object):
             cherrypy.session['pick'] = pick
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
+            cherrypy.session['gripper_open'] = gripper_open
             self.publish()
         except CoordinatesInvalidException:
             # try, try again
