@@ -10,6 +10,13 @@ env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(os.path.a
 import rospy
 from quarc_user_interface.msg import user_input
 
+import logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    filename='/tmp/quarc_user_interface.log',
+                    filemode='w')
+
 
 class CoordinatesInvalidException(Exception):
     pass
@@ -34,7 +41,8 @@ class SimpleUserInterface(object):
         msg = user_input()
         msg.pick_X, msg.pick_Y, msg.pick_Z = cherrypy.session['raw'][0]
         msg.place_X, msg.place_Y, msg.place_Z = cherrypy.session['raw'][1]
-        msg.gripper_open = cherrypy.session['gripper_open']
+        logging.debug('Cherrypy session is %s', cherrypy.session)
+        msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
         self.publisher.publish(msg)
 
 
@@ -70,8 +78,8 @@ class SimpleUserInterface(object):
 
         index = env.get_template('index.html') \
                    .render(action='index',
-                           default_pick_text=place_coordinates,
-                           default_place_text=pick_coordinates,
+                           default_pick_text=pick_coordinates,
+                           default_place_text=place_coordinates,
                            pick_text='Pick object from:',
                            pick_name='pick_coordinates',
                            place_text='Place object at:',
@@ -82,10 +90,13 @@ class SimpleUserInterface(object):
 
     @cherrypy.expose
     def debug(self, pick_coordinates = None, place_coordinates = None,
-              gripper_open = True):
+              gripper_open = 'off', mirror_coordinates='on'):
         try:
             pick  = self.parse_coordinates(pick_coordinates)
             place  = self.parse_coordinates(place_coordinates)
+            if mirror_coordinates == 'on':
+                place = pick
+                place_coordinates = pick_coordinates
             path = "%s -> %s" % (pick, place)
             cherrypy.session['raw'] = (pick, place)
             cherrypy.session['pick'] = pick
@@ -100,16 +111,19 @@ class SimpleUserInterface(object):
 
         index = env.get_template('debug.html') \
                    .render(action='debug',
-                           default_pick_text=place_coordinates,
-                           default_place_text=pick_coordinates,
+                           default_pick_text=pick_coordinates,
+                           default_place_text=place_coordinates,
                            pick_text='Pick object from:',
                            pick_name='pick_coordinates',
                            place_text='Place object at:',
                            place_name='place_coordinates',
                            submit_button_text='Start',
-                           gripper_checked='checked' if not gripper_open else '',
+                           gripper_checked='checked' if gripper_open == 'on' else '',
                            gripper_box_text='Close gripper',
-                           gripper_box_name='gripper_open')
+                           gripper_box_name='gripper_open',
+                           mirror_checked='checked' if mirror_coordinates == 'on' else '',
+                           mirror_box_text='Mirror coordinates',
+                           mirror_box_name='mirror_coordinates')
         return self.siteify(index)
 
 
