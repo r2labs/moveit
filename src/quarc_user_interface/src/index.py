@@ -9,6 +9,8 @@ env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(os.path.a
 
 import rospy
 from quarc_user_interface.msg import user_input
+from quarc_user_interface.msg import set_position
+from quarc_user_interface.msg import set_gripper
 
 import logging
 logging.basicConfig(level=logging.DEBUG,
@@ -29,6 +31,8 @@ class SimpleUserInterface(object):
         self.site_header = env.get_template('site_header.html').render()
         self.site_end = env.get_template('site_end.html').render()
         self.publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
+        self.goto_publisher = rospy.Publisher('set_position', set_position, queue_size=10)
+        self.grip_publisher = rospy.Publisher('set_gripper', set_gripper, queue_size=10)
         rospy.init_node('quarc_user_interface')
 
 
@@ -58,6 +62,19 @@ class SimpleUserInterface(object):
             raise CoordinatesInvalidException()
         return tuple(coords)
 
+    @cherrypy.expose
+    def grip(self, g):
+        msg = set_gripper()
+        msg.gripper_percent = float(g)
+        self.grip_publisher.publish(msg)
+
+    @cherrypy.expose
+    def goto(self, x, y, z):
+        msg = set_position()
+        msg.x = float(x)
+        msg.y = float(y)
+        msg.z = float(z)
+        self.goto_publisher.publish(msg)
 
     @cherrypy.expose
     def index(self, pick_coordinates = None, place_coordinates = None):
@@ -152,14 +169,14 @@ if __name__ == '__main__':
         #     'tools.staticdir.on': True,
         #     'tools.staticdir.dir': './public'
         # },
-	'/images':{
-	     'tools.staticdir.on': True,
-	     'tools.staticdir.dir': '../imgs'
-	},
-	# '/favicon.ico':{
-	#      'tools.staticfile.on': True,
-	#      'tools.staticfile.filename': '/images/favicon.ico'
-	# }
+        '/images':{
+             'tools.staticdir.on': True,
+             'tools.staticdir.dir': '../imgs'
+        },
+        # '/favicon.ico':{
+        #      'tools.staticfile.on': True,
+        #      'tools.staticfile.filename': '/images/favicon.ico'
+        # }
     }
 
     cherrypy.config.update({'server.socket_host': '127.0.0.1'})
