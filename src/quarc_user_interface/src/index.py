@@ -12,6 +12,7 @@ from quarc_user_interface.msg import user_input
 from quarc_user_interface.msg import set_position
 from quarc_user_interface.msg import set_gripper
 
+import time
 import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -28,29 +29,32 @@ class SimpleUserInterface(object):
 
 
     def __init__(self):
+        """Initialize ros publishers and node."""
         self.site_header = env.get_template('site_header.html').render()
         self.site_end = env.get_template('site_end.html').render()
-        self.publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
+        self.pp_publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
         self.goto_publisher = rospy.Publisher('set_position', set_position, queue_size=10)
         self.grip_publisher = rospy.Publisher('set_gripper', set_gripper, queue_size=10)
         rospy.init_node('quarc_user_interface')
 
 
-
     def siteify(self, body):
+        """Return site's body, wrapped in header and footer."""
         return (self.site_header,body,self.site_end)
 
 
-    def publish(self):
-        msg = user_input()
-        msg.pick_X, msg.pick_Y, msg.pick_Z = cherrypy.session['raw'][0]
-        msg.place_X, msg.place_Y, msg.place_Z = cherrypy.session['raw'][1]
-        logging.debug('Cherrypy session is %s', cherrypy.session)
-        msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
-        self.publisher.publish(msg)
+    def pp_publish(self):
+        """Publish the pick and place action entered into index.html"""
+        # pick_X, pick_Y, pick_Z = cherrypy.session['raw'][0]
+        # place_X, place_Y, place_Z = cherrypy.session['raw'][1]
+        self.pick(*cherrypy.session['raw'][0], -90)
+        self.place(*cherrypy.session['raw'][0], -90)
+        # msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
+        # self.pp_publisher.publish(msg)
 
 
     def parse_coordinates(self, coordinates):
+        """Parse coordinates from the html text box."""
         try:
             coords = []
             for i in coordinates.strip("()").split(","):
@@ -62,22 +66,68 @@ class SimpleUserInterface(object):
             raise CoordinatesInvalidException()
         return tuple(coords)
 
-    @cherrypy.expose
-    def grip(self, g):
-        msg = set_gripper()
-        msg.gripper_percent = float(g)
-        self.grip_publisher.publish(msg)
 
     @cherrypy.expose
-    def goto(self, x, y, z):
+    def grip(self, gripper_percent = 1.0):
+        """Signal ros to set the gripper percent."""
+        msg = set_gripper()
+        msg.gripper_percent = float(gripper_percent)
+        self.grip_publisher.publish(msg)
+
+
+    @cherrypy.expose
+    def ungrip(self):
+        """Signal ros to open the gripper."""
+        self.grip(0.0)
+
+
+    @cherrypy.expose
+    def goto(self, x, y, z, gripper_degrees = -90):
+        """Signal ros to move the arm to """
         msg = set_position()
         msg.x = float(x)
         msg.y = float(y)
         msg.z = float(z)
+        msg.ga_d = float(gripper_degrees)
         self.goto_publisher.publish(msg)
+
+
+    @cherrypy.expose
+    def rest(self):
+        """Return the robot to rest position."""
+        self.goto(0, 150, 150, 0)
+
+
+    @cherrypy.expose
+    def pick(self, x, y, z, gripper_angle_degrees):
+        """Signal the arm to pick up an object at the specified coordinates."""
+        vertical_buffer_height = 120
+        self.ungrip()
+        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+        sleep(1)
+        self.goto(x, y, z, gripper_angle_degrees)
+        sleep(1)
+        self.grip()
+        sleep(1)
+        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+
+
+    @cherrypy.expose
+    def place(self, x, y, z, gripper_angle_degrees):
+        """Signal the arm to place an object at the specified coordinates."""
+        vertical_buffer_height = 120
+        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+        sleep(1)
+        self.goto(x, y, z, gripper_angle_degrees)
+        sleep(1)
+        self.ungrip()
+        sleep(1)
+        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+
 
     @cherrypy.expose
     def index(self, pick_coordinates = None, place_coordinates = None):
+        """Query the user for coordinates to do the simplest pick/place routine."""
         try:
             pick  = self.parse_coordinates(pick_coordinates)
             place  = self.parse_coordinates(place_coordinates)
@@ -87,7 +137,8 @@ class SimpleUserInterface(object):
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
             cherrypy.session['gripper_open'] = True
-            self.publish()
+            # TODO: re-organize pp_publish
+            self.pp_publish()
         except CoordinatesInvalidException:
             # try, try again
             pick_coordinates = '(x,y,z)'
@@ -120,7 +171,8 @@ class SimpleUserInterface(object):
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
             cherrypy.session['gripper_open'] = gripper_open
-            self.publish()
+            # TODO: re-organize pp_publish
+            self.pp_publish()
         except CoordinatesInvalidException:
             # try, try again
             pick_coordinates = '(x,y,z)'
@@ -143,21 +195,6 @@ class SimpleUserInterface(object):
                            mirror_box_name='mirror_coordinates')
         return self.siteify(index)
 
-
-    # @cherrypy.expose
-    # def parse_path(self, pick_coordinates, place_coordinates):
-    #     pick  = self.parse_coordinates(pick_coordinates)
-    #     place  = self.parse_coordinates(place_coordinates)
-    #     path = "%s -> %s" % (pick, place)
-    #     cherrypy.session['raw'] = (pick, place)
-    #     cherrypy.session['pick'] = pick
-    #     cherrypy.session['place'] = place
-    #     cherrypy.session['path_string'] = path
-    #     page = env.get_template('parse_path.html') \
-    #               .render(action='index', path=path,
-    #                       submit_button_text='Plan another path')
-    #     self.publish()
-    #     return self.siteify(page)
 
 if __name__ == '__main__':
     conf = {
