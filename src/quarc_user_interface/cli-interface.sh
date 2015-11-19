@@ -49,3 +49,7 @@ function place {
     sleep 1
     move_arm ${1} ${2} 120 $4
 }
+
+function rest {
+    move_arm 0 150 150 0
+}
