@@ -51,5 +51,5 @@ function place {
 }
 
 function rest {
-    move_arm 0 150 150 0
+    curl "http://localhost:8080/rest"
 }
