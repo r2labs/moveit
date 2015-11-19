@@ -1,5 +1,9 @@
 function move_arm {
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}"
+    local ga=-90
+    if [[ -n $4 ]]; then
+        ga=$4
+    fi
+    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}&ga_d=${ga}"
     sleep 0.005
 }
 
@@ -19,21 +23,21 @@ function ungrip {
 
 function pick {
     ungrip
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=120"
+    move_arm ${1} ${2} 120
     sleep 1
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}"
+    move_arm ${1} ${2} ${3}
     sleep 1
     grip
     sleep 1;
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=120"
+    move_arm ${1} ${2} 120
 }
 
 function place {
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=120"
+    move_arm ${1} ${2} 120
     sleep 1
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}"
+    move_arm ${1} ${2} ${3}
     sleep 1
     ungrip
-    sleep 1;
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=120"
+    sleep 1
+    move_arm ${1} ${2} 120
 }
