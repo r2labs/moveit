@@ -84,13 +84,13 @@ class SimpleUserInterface(object):
 
 
     @cherrypy.expose
-    def goto(self, x, y, z, gripper_degrees = -90):
+    def goto(self, x, y, z, gripper_angle_degrees = -90):
         """Signal ros to move the arm to """
         msg = set_position()
         msg.x = float(x)
         msg.y = float(y)
         msg.z = float(z)
-        msg.ga_d = float(gripper_degrees)
+        msg.ga_d = float(gripper_angle_degrees)
         self.goto_publisher.publish(msg)
 
 
