@@ -97,6 +97,7 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def rest(self):
         """Return the robot to rest position."""
+        self.ungrip()
         self.goto(0, 150, 150, 0)
 
 
