@@ -4,7 +4,11 @@ function move_arm {
 }
 
 function grip {
-    curl "http://localhost:8080/grip?g=1.0"
+    local g=1
+    if [[ -n $1 ]]; then
+        g=$1
+    fi
+    curl "http://localhost:8080/grip?g=${g}"
     sleep 0.005
 }
 
