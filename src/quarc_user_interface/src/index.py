@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import cherrypy
-import os, string
+import os, string, sys
 
 from jinja2 import Environment, FileSystemLoader
 env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')))
@@ -12,12 +12,12 @@ from quarc_user_interface.msg import user_input
 from quarc_user_interface.msg import set_position
 from quarc_user_interface.msg import set_gripper
 
-from quarc_user_interface.src.routines.dominos import domino_controller
+import controllers
 
 import os
-import time
 import yaml
 import logging
+from time import sleep
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
@@ -47,20 +47,21 @@ class SimpleUserInterface(object):
         return (self.site_header,body,self.site_end)
 
 
-    def get_routine(routine_type, routine_name):
+    def get_routine(self, routine_type, routine_name):
         """Load the plans for a routine of specified type and name."""
-        with open(os.path.joinpath(os.path.dirname(os.path.abspath(__file__)),
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                    routine_type,
                                    '%s.yml' % routine_name)) as handle:
             return yaml.safe_load(handle)
 
 
+    @cherrypy.expose
     def exec_routine(self, routine_type, routine_name):
         # TODO: complete use of design patterns, finish the meta code
         if routine_type == 'dominos':
-            routine = get_routine(routine_type, routine_name)
-            controller = DominoController()
-            controller.exec(routine, self)
+            routine = self.get_routine(routine_type, routine_name)
+            controller = controllers.DominoController()
+            controller.doit(routine, self)
 
 
     def pp_publish(self):
