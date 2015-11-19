@@ -42,15 +42,17 @@ class SimpleUserInterface(object):
         """Return site's body, wrapped in header and footer."""
         return (self.site_header,body,self.site_end)
 
-
     def pp_publish(self):
-        """Publish the pick and place action entered into index.html"""
-        # pick_X, pick_Y, pick_Z = cherrypy.session['raw'][0]
-        # place_X, place_Y, place_Z = cherrypy.session['raw'][1]
-        self.pick(*cherrypy.session['raw'][0], -90)
-        self.place(*cherrypy.session['raw'][0], -90)
-        # msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
-        # self.pp_publisher.publish(msg)
+        pass
+
+    # def pp_publish(self):
+    #     """Publish the pick and place action entered into index.html"""
+    #     # pick_X, pick_Y, pick_Z = cherrypy.session['raw'][0]
+    #     # place_X, place_Y, place_Z = cherrypy.session['raw'][1]
+    #     self.pick(*cherrypy.session['raw'][0], -90)
+    #     self.place(*cherrypy.session['raw'][0], -90)
+    #     # msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
+    #     # self.pp_publisher.publish(msg)
 
 
     def parse_coordinates(self, coordinates):
