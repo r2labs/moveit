@@ -3,7 +3,7 @@ function move_arm {
     if [[ -n $4 ]]; then
         ga=$4
     fi
-    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}&ga_d=${ga}"
+    curl "http://localhost:8080/goto?x=${1}&y=${2}&z=${3}&gripper_angle_degrees=${ga}"
     sleep 0.005
 }
 
@@ -12,12 +12,12 @@ function grip {
     if [[ -n $1 ]]; then
         g=$1
     fi
-    curl "http://localhost:8080/grip?g=${g}"
+    curl "http://localhost:8080/grip?gripper_percent=${g}"
     sleep 0.005
 }
 
 function ungrip {
-    curl "http://localhost:8080/grip?g=0.0"
+    curl "http://localhost:8080/ungrip"
     sleep 0.005
 }
 
