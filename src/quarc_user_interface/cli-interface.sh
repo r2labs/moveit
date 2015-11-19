@@ -22,22 +22,30 @@ function ungrip {
 }
 
 function pick {
+    local ga=-90
+    if [[ -n $4 ]]; then
+        ga=$4
+    fi
     ungrip
-    move_arm ${1} ${2} 120
+    move_arm ${1} ${2} 120 $4
     sleep 1
-    move_arm ${1} ${2} ${3}
+    move_arm ${1} ${2} ${3} $4
     sleep 1
     grip
     sleep 1;
-    move_arm ${1} ${2} 120
+    move_arm ${1} ${2} 120 $4
 }
 
 function place {
-    move_arm ${1} ${2} 120
+    local ga=-90
+    if [[ -n $4 ]]; then
+        ga=$4
+    fi
+    move_arm ${1} ${2} 120 $4
     sleep 1
-    move_arm ${1} ${2} ${3}
+    move_arm ${1} ${2} ${3} $4
     sleep 1
     ungrip
     sleep 1
-    move_arm ${1} ${2} 120
+    move_arm ${1} ${2} 120 $4
 }
