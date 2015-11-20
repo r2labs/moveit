@@ -107,21 +107,23 @@ class SimpleUserInterface(object):
 
 
     @cherrypy.expose
-    def grip(self, gripper_percent = 1.0):
+    def grip(self, gripper_percent = 1.0, no_sleep=False):
         """Signal ros to set the gripper percent."""
         msg = set_gripper()
         msg.gripper_percent = float(gripper_percent)
         self.grip_publisher.publish(msg)
+        if not no_sleep:
+            sleep(1)
 
 
     @cherrypy.expose
-    def ungrip(self):
+    def ungrip(self, no_sleep=False):
         """Signal ros to open the gripper."""
-        self.grip(0.0)
+        self.grip(0.0, no_sleep)
 
 
     @cherrypy.expose
-    def goto(self, x, y, z, gripper_angle_degrees = -90):
+    def goto(self, x, y, z, gripper_angle_degrees = -90, no_sleep=False):
         """Signal ros to move the arm to """
         if self.CANCELED:
             self.CANCELED = False
@@ -132,6 +134,8 @@ class SimpleUserInterface(object):
         msg.z = float(z)
         msg.ga_d = float(gripper_angle_degrees)
         self.goto_publisher.publish(msg)
+        if not no_sleep:
+            sleep(1)
 
 
     @cherrypy.expose
@@ -145,29 +149,21 @@ class SimpleUserInterface(object):
     def pick(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to pick up an object at the specified coordinates."""
         vertical_buffer_height = 60
-        self.ungrip()
+        self.ungrip(no_sleep=True)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        sleep(1)
         self.goto(x, y, z, gripper_angle_degrees)
-        sleep(1)
         self.grip()
-        sleep(1)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        sleep(1)
-        
+
 
     @cherrypy.expose
     def place(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to place an object at the specified coordinates."""
         vertical_buffer_height = 60
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        sleep(1)
         self.goto(x, y, z, gripper_angle_degrees)
-        sleep(1)
         self.ungrip()
-        sleep(1)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        sleep(1)
 
 
     @cherrypy.expose
