@@ -19,20 +19,20 @@ class DominoController(Controller):
         """Accepts a routine (already loaded yaml file) to execute."""
         dropzones = routine.get('dropzones')
         robot_controller.ungrip()
-        i = 0
-        for droppoint in dropzones:
+        for i in range(len(dropzones)):
+            if robot_controller.CANCELED:
+                return
             self.pick_domino(robot_controller,
                              routine['given']['x'],
                              routine['given']['y'],
                              len(dropzones) - i)
-            i += 1
-            self.place_domino(robot_controller, droppoint)
+            self.place_domino(robot_controller, dropzones[i])
         self.knock_dominos_over(robot_controller, dropzones[-1])
 
 
     def pick_domino(self, robot_controller, x, y, stack_height):
         """Pick up the top domino from the specified stack of tiles."""
-        robot_controller.pick(x, y, stack_height * 10, -90)
+        robot_controller.pick(x, y, (stack_height-1) * 11, -90)
 
 
     def place_domino(self, robot_controller, dropzone_string):
@@ -51,7 +51,7 @@ class DominoController(Controller):
         robot_controller.grip()
         robot_controller.goto(x, y-15, self.domino_place_height, 0)
         sleep(1)
-        robot_controller.goto(x, y+15, self.domino_place_height, 0)
+        robot_controller.goto(x, y+20, self.domino_place_height, 0)
         sleep(1)
         robot_controller.goto(x, y-15, self.domino_place_height, 0)
         sleep(1)

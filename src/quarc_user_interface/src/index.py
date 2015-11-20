@@ -28,12 +28,17 @@ logging.basicConfig(level=logging.DEBUG,
 class CoordinatesInvalidException(Exception):
     pass
 
+    
+class CancelActionException(Exception):
+    pass
+
 
 class SimpleUserInterface(object):
 
 
     def __init__(self):
         """Initialize ros publishers and node."""
+        self.CANCELED = False
         self.site_header = env.get_template('site_header.html').render()
         self.site_end = env.get_template('site_end.html').render()
         self.pp_publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
@@ -44,7 +49,8 @@ class SimpleUserInterface(object):
 
     def siteify(self, body):
         """Return site's body, wrapped in header and footer."""
-        return (self.site_header,body,self.site_end)
+        retur
+        n (self.site_header,body,self.site_end)
 
 
     def get_routine(self, routine_type, routine_name):
@@ -63,6 +69,14 @@ class SimpleUserInterface(object):
             controller = controllers.DominoController()
             controller.doit(routine, self)
 
+
+    @cherrypy.expose
+    def cancel(self):
+        self.CANCELED = True
+        sleep(3)
+        self.CANCELED = False
+        self.ungrip()
+        self.rest()
 
     def pp_publish(self):
         pass
@@ -109,6 +123,9 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def goto(self, x, y, z, gripper_angle_degrees = -90):
         """Signal ros to move the arm to """
+        if self.CANCELED:
+            self.CANCELED = False
+            raise CancelActionException()
         msg = set_position()
         msg.x = float(x)
         msg.y = float(y)
@@ -127,28 +144,30 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def pick(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to pick up an object at the specified coordinates."""
-        vertical_buffer_height = 120
+        vertical_buffer_height = 60
         self.ungrip()
-        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
         sleep(1)
         self.goto(x, y, z, gripper_angle_degrees)
         sleep(1)
         self.grip()
         sleep(1)
-        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
-
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
+        sleep(1)
+        
 
     @cherrypy.expose
     def place(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to place an object at the specified coordinates."""
-        vertical_buffer_height = 120
-        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+        vertical_buffer_height = 60
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
         sleep(1)
         self.goto(x, y, z, gripper_angle_degrees)
         sleep(1)
         self.ungrip()
         sleep(1)
-        self.goto(x, y, vertical_buffer_height, gripper_angle_degrees)
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
+        sleep(1)
 
 
     @cherrypy.expose
