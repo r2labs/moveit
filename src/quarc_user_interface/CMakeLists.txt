@@ -5,9 +5,9 @@ project(quarc_user_interface)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  message_generation
   rospy
   std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,6 +49,7 @@ add_message_files(
   user_input.msg
   set_position.msg
   set_gripper.msg
+  vision_object.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -100,10 +101,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  # INCLUDE_DIRS include
+   CATKIN_DEPENDS rospy message_runtime
    LIBRARIES quarc_user_interface
-   CATKIN_DEPENDS message_generation rospy
-   CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -114,7 +114,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
+include_directories(include
   ${catkin_INCLUDE_DIRS}
 )
 

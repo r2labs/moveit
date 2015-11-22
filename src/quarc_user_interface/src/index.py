@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.DEBUG,
 class CoordinatesInvalidException(Exception):
     pass
 
-    
+
 class CancelActionException(Exception):
     pass
 
@@ -129,10 +129,16 @@ class SimpleUserInterface(object):
             self.CANCELED = False
             raise CancelActionException()
         msg = set_position()
-        msg.x = float(x)
-        msg.y = float(y)
-        msg.z = float(z)
-        msg.ga_d = float(gripper_angle_degrees)
+        try:
+            msg.x = float(x)
+            msg.y = float(y)
+            msg.z = float(z)
+            msg.ga_d = float(gripper_angle_degrees)
+        except:
+            msg.x = x
+            msg.y = y
+            msg.z = z
+            msg.ga_d = gripper_angle_degrees
         self.goto_publisher.publish(msg)
         if not no_sleep:
             sleep(1)
@@ -142,27 +148,40 @@ class SimpleUserInterface(object):
     def rest(self):
         """Return the robot to rest position."""
         self.ungrip()
-        self.goto(0, 150, 150, 0)
+        self.goto(-140, 0, 120, 0)
 
 
     @cherrypy.expose
-    def pick(self, x, y, z, gripper_angle_degrees):
+    def pick(self, x, y, z, gripper_angle_degrees = -90):
         """Signal the arm to pick up an object at the specified coordinates."""
         vertical_buffer_height = 60
+        x = float(x)
+        y = float(y)
+        z = float(z)
         self.ungrip(no_sleep=True)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
         self.goto(x, y, z, gripper_angle_degrees)
         self.grip()
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
+    @cherrypy.expose
+    def dinodrop(self):
+        """Signal the arm to place an object in a specific location."""
+        self.goto(-140, 0, 150, -90)
+        sleep(0.5)
+        self.ungrip()
 
     @cherrypy.expose
-    def place(self, x, y, z, gripper_angle_degrees):
+    def place(self, x, y, z=5.0, gripper_angle_degrees = -90.0):
         """Signal the arm to place an object at the specified coordinates."""
-        vertical_buffer_height = 60
+        vertical_buffer_height = 60.0
+        x = float(x)
+        y = float(y)
+        z = float(z)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
         self.goto(x, y, z, gripper_angle_degrees)
-        self.ungrip()
+        self.ungrip(no_sleep=True)
+        sleep(0.5)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 

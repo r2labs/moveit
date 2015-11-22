@@ -23,31 +23,30 @@ function ungrip {
 
 function pick {
     local ga=-90
+    local z=10
+    if [[ -n $3 ]]; then
+        ga=$3
+    fi
     if [[ -n $4 ]]; then
         ga=$4
     fi
-    ungrip
-    move_arm ${1} ${2} 120 $4
-    sleep 1
-    move_arm ${1} ${2} ${3} $4
-    sleep 1
-    grip
-    sleep 1;
-    move_arm ${1} ${2} 120 $4
+    curl "http://localhost:8080/pick?x=${1}&y=${2}&z=${z}&gripper_angle_degrees=${ga}"
+}
+
+function dinodrop {
+    curl "http://localhost:8080/dinodrop"
 }
 
 function place {
-    local ga=-90
+    local ga="-90"
+    local z="100"
+    if [[ -n $3 ]]; then
+        z=$4
+    fi
     if [[ -n $4 ]]; then
         ga=$4
     fi
-    move_arm ${1} ${2} 120 $4
-    sleep 1
-    move_arm ${1} ${2} ${3} $4
-    sleep 1
-    ungrip
-    sleep 1
-    move_arm ${1} ${2} 120 $4
+    curl "http://localhost:8080/place?x=${1}&y=${2}&z=${z}&gripper_angle_degrees=${ga}"
 }
 
 function rest {
