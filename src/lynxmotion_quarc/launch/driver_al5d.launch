@@ -9,4 +9,5 @@
   </node>
   <node name="chatter_driver" pkg="chatter_tester" type="chatter_node" output="screen"/>
   <node name="quarc_user_interface" pkg="quarc_user_interface" type="index.py" output="screen"/>
+  <node name="quarc_vision" pkg="quarc_vision" type="vision.py" output="screen"/>
 </launch>
