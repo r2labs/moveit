@@ -66,8 +66,7 @@ class SimpleUserInterface(object):
 
     def siteify(self, body):
         """Return site's body, wrapped in header and footer."""
-        retur
-        n (self.site_header,body,self.site_end)
+        return (self.site_header,body,self.site_end)
 
 
     def get_routine(self, routine_type, routine_name):
