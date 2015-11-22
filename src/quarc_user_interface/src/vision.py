@@ -5,11 +5,11 @@ import rospy
 import numpy as np
 from quarc_user_interface.msg import vision_object
 
-objects = {"green" : [[22, 50, 0], [56, 220, 225]],
-           "blue": [[83, 95, 64], [124, 255, 255]],
-           "red": [[135, 135, 0], [179, 255, 255]]}
+objects = {"green" : [[22, 50, 0], [56, 220, 225], [0, 255, 0]],
+           "blue": [[83, 95, 64], [124, 255, 255], [255, 0, 0]],
+           "red": [[135, 135, 0], [179, 255, 255], [0, 0, 255]]}
 
-object_publisher = rospy.Publisher('vision_objects', vision_object, queue_size=10)
+object_publisher = rospy.Publisher('vision_object', vision_object, queue_size=10)
 rospy.init_node('quarc_vision')
 
 def angle_cos(p0, p1, p2):
@@ -42,6 +42,7 @@ def find_squares(img):
 cap = cv2.VideoCapture(0)
 
 while(1):
+    msg = vision_object()
     _, img = cap.read()
 
     # # --- square finding ---
@@ -70,7 +71,7 @@ while(1):
     # --- masking ---
     if persp_img != None:
         hsv = cv2.cvtColor(persp_img, cv2.COLOR_BGR2HSV)
-        for obj, (lower, upper) in objects.items():
+        for obj, (lower, upper, color) in objects.items():
             upper = np.array(upper)
             lower = np.array(lower)
             mask = cv2.inRange(hsv, lower, upper)
@@ -89,11 +90,16 @@ while(1):
                 approx = cv2.approxPolyDP(c, 0.05 * peri, True)
                 (x,y), radius = cv2.minEnclosingCircle(c)
                 print obj + " : " + "x: " + str(200-x) + "y: " + str(y+50) + " rad: " + str(radius)
-                cv2.drawContours(masked, [approx], -1, (0, 255, 0), 4)
-            cv2.imshow('persp', persp_img)
-            cv2.imshow('masked_' + obj, masked)
-    cv2.imshow('original', img)
-    k = cv2.waitKey(5) & 0xFF
+                cv2.drawContours(persp_img, [approx], -1, color, 4)
+                msg.x.append(x)
+                msg.y.append(y)
+                msg.radius.append(radius)
+                msg.color.append(obj)
+        # cv2.imshow('persp', persp_img)
+        object_publisher.publish(msg)
+
+    # cv2.imshow('original', img)
+    # k = cv2.waitKey(5) & 0xFF
     # if k == 27:
     #     break
 
