@@ -34,13 +34,12 @@ class CancelActionException(Exception):
     pass
 
 class VisionObject:
-    def __init__(self, x, y, radius, color):
-        self.x = x;
-        self.y = y;
-        self.radius = radius;
+    def __init__(self, points, radius, color):
+        self.points = points;
         self.color = color;
+        self.radius = radius
     def json(self):
-        return str(self.__dict__)
+        return str(self.__dict__).replace("'", '"')
 
 class SimpleUserInterface(object):
 
@@ -60,9 +59,22 @@ class SimpleUserInterface(object):
 
     def vision_callback(self, msg):
         self.vision_objects = []
-        objs = zip(msg.x, msg.y, msg.radius, msg.color)
-        for obj in objs:
-            self.vision_objects.append(VisionObject(obj[0], obj[1], obj[2], obj[3]))
+        pidx = 0
+        for i in range(msg.numpolys):
+            points = []
+            for j in range(msg.numpoints[i]):
+                points.append([msg.x[pidx], msg.y[pidx]])
+                pidx = pidx+1
+            self.vision_objects.append(VisionObject(points, msg.radius[i], msg.color[i]))
+
+    @cherrypy.expose
+    def vision(self):
+        ret = '{"items": ['
+        strs = [str(v.__dict__).replace("'", '"') for v in self.vision_objects]
+        ret += ",".join(strs)
+        ret += "]}"
+        return ret
+
 
     def siteify(self, body):
         """Return site's body, wrapped in header and footer."""
@@ -84,13 +96,6 @@ class SimpleUserInterface(object):
             routine = self.get_routine(routine_type, routine_name)
             controller = controllers.DominoController()
             controller.doit(routine, self)
-
-    @cherrypy.expose
-    def vision(self):
-        ret = ""
-        for v in self.vision_objects:
-            ret += v.json()
-        return ret
 
     @cherrypy.expose
     def cancel(self):
@@ -167,8 +172,8 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def rest(self):
         """Return the robot to rest position."""
-        self.ungrip()
         self.goto(-140, 0, 120, 0)
+        self.ungrip()
 
 
     @cherrypy.expose
@@ -276,11 +281,15 @@ class SimpleUserInterface(object):
         return self.siteify(index)
 
 
+def CORS():
+    cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
+
 if __name__ == '__main__':
     conf = {
         '/': {
             'tools.sessions.on': True,
-            'tools.staticdir.root': os.path.dirname(os.path.abspath(__file__))
+            'tools.staticdir.root': os.path.dirname(os.path.abspath(__file__)),
+            'tools.CORS.on': True
         },
         # '/static': {
         #     'tools.staticdir.on': True,
@@ -295,7 +304,7 @@ if __name__ == '__main__':
         #      'tools.staticfile.filename': '/images/favicon.ico'
         # }
     }
-
+    cherrypy.tools.CORS = cherrypy.Tool('before_handler', CORS)
     cherrypy.config.update({'server.socket_host': '127.0.0.1'})
     cherrypy.config.update({'server.socket_port': 8080})
     cherrypy.quickstart(SimpleUserInterface(), '/', conf)
