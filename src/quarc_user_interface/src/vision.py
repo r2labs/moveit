@@ -6,7 +6,8 @@ import numpy as np
 from quarc_user_interface.msg import vision_object
 
 objects = {"green" : [[22, 50, 0], [56, 220, 225]],
-           "blue": [[88, 0, 64], [113, 255, 226]]}
+           "blue": [[83, 95, 64], [124, 255, 255]],
+           "red": [[135, 135, 0], [179, 255, 255]]}
 
 object_publisher = rospy.Publisher('vision_objects', vision_object, queue_size=10)
 rospy.init_node('quarc_vision')
@@ -60,30 +61,37 @@ while(1):
         rect[3] = pts[np.argmax(d)]
 
 
-        actualboard = np.float32([[0,0], [800, 0], [800, 600], [0, 600]])
+        actualboard = np.float32([[0,0], [400, 0], [400, 300], [0, 300]])
         persp_M = cv2.getPerspectiveTransform(rect, actualboard)
-        persp_img = cv2.warpPerspective(img, persp_M, (800,600))
+        persp_img = cv2.warpPerspective(img, persp_M, (400,300))
 
         cv2.drawContours(img, [edge], -1, (0, 0, 255), 3)
 
     # --- masking ---
     if persp_img != None:
         hsv = cv2.cvtColor(persp_img, cv2.COLOR_BGR2HSV)
-        for obj, (lower, upper) in objects:
+        for obj, (lower, upper) in objects.items():
+            upper = np.array(upper)
+            lower = np.array(lower)
             mask = cv2.inRange(hsv, lower, upper)
             # persp_img = cv2.bitwise_and(persp_img,persp_img,mask = mask)
             (contours, cnts, _) = cv2.findContours(mask.copy(),
                                                 cv2.RETR_EXTERNAL,
                                                 cv2.CHAIN_APPROX_SIMPLE)
 
-            areas = sorted(cnts, key=cv2.contourArea, reverse=True)[:1]
+            masked = cv2.bitwise_and(persp_img, persp_img, mask=mask)
+
+            areas = cnts
+            areas = [x for x in areas if cv2.contourArea(x) > 20]
+            areas = sorted(areas, key=cv2.contourArea, reverse=True)[:3]
             for c in areas:
                 peri = cv2.arcLength(c, True)
                 approx = cv2.approxPolyDP(c, 0.05 * peri, True)
                 (x,y), radius = cv2.minEnclosingCircle(c)
                 print obj + " : " + "x: " + str(200-x) + "y: " + str(y+50) + " rad: " + str(radius)
-                cv2.drawContours(persp_img, [approx], -1, (0, 255, 0), 4)
+                cv2.drawContours(masked, [approx], -1, (0, 255, 0), 4)
             cv2.imshow('persp', persp_img)
+            cv2.imshow('masked_' + obj, masked)
     cv2.imshow('original', img)
     k = cv2.waitKey(5) & 0xFF
     # if k == 27:
