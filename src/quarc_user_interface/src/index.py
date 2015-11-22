@@ -97,8 +97,6 @@ class SimpleUserInterface(object):
         self.CANCELED = True
         sleep(3)
         self.CANCELED = False
-        self.ungrip()
-        self.rest()
 
     def pp_publish(self):
         pass
