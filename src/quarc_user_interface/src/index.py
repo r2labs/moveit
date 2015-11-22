@@ -11,6 +11,7 @@ import rospy
 from quarc_user_interface.msg import user_input
 from quarc_user_interface.msg import set_position
 from quarc_user_interface.msg import set_gripper
+from quarc_vision.msg import vision_object
 
 import controllers
 
@@ -32,9 +33,16 @@ class CoordinatesInvalidException(Exception):
 class CancelActionException(Exception):
     pass
 
+class VisionObject:
+    def __init__(self, x, y, radius, color):
+        self.x = x;
+        self.y = y;
+        self.radius = radius;
+        self.color = color;
+    def json(self):
+        return str(self.__dict__)
 
 class SimpleUserInterface(object):
-
 
     def __init__(self):
         """Initialize ros publishers and node."""
@@ -45,7 +53,16 @@ class SimpleUserInterface(object):
         self.goto_publisher = rospy.Publisher('set_position', set_position, queue_size=10)
         self.grip_publisher = rospy.Publisher('set_gripper', set_gripper, queue_size=10)
         rospy.init_node('quarc_user_interface')
+        # rospy.init_node('quarc_vision', anonymous=True)
+        self.vision_subscriber = rospy.Subscriber("vision_object", vision_object, self.vision_callback)
+        self.rest()
+        self.vision_objects = []
 
+    def vision_callback(self, msg):
+        self.vision_objects = []
+        objs = zip(msg.x, msg.y, msg.radius, msg.color)
+        for obj in objs:
+            self.vision_objects.append(VisionObject(obj[0], obj[1], obj[2], obj[3]))
 
     def siteify(self, body):
         """Return site's body, wrapped in header and footer."""
@@ -69,6 +86,12 @@ class SimpleUserInterface(object):
             controller = controllers.DominoController()
             controller.doit(routine, self)
 
+    @cherrypy.expose
+    def vision(self):
+        ret = ""
+        for v in self.vision_objects:
+            ret += v.json()
+        return ret
 
     @cherrypy.expose
     def cancel(self):
