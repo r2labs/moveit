@@ -26,17 +26,24 @@ class DominoController(Controller):
                              routine['x'], routine['y'],
                              len(dropzones) - i)
             self.place_domino(robot_controller, dropzones[i])
-        if not routine.get('leave_standing'):
-            self.knock_dominos_over(robot_controller, dropzones[-1])
+        if routine.get('leave_standing', False):
+            robot_controller.rest()
+        else:
+            if routine.get('knockdown_routine'):
+                movezones = routine.get('knockdown_routine')
+                for i in range(len(movezones)):
+                    self.move_arm(robot_controller, movezones[i])
+            else:
+                self.knock_dominos_over(robot_controller, dropzones[-1])
+            
 
-        
     def rotate_domino(self, robot_controller, x, y):
         """Rotate the domino on the ground 90 degrees."""
         robot_controller.grip()
-        robot_controller.goto(x+30, y-22, 0, -90)
-        robot_controller.goto(x-25, y-18, 0, -90)
-        robot_controller.goto(x-33, y-17, 0, -90)
-        robot_controller.goto(x-37, y-10, 0, -90)
+        robot_controller.goto(x+30, y-38, 0, -90)
+        robot_controller.goto(x-25, y-34, 0, -90)
+        robot_controller.goto(x-33, y-33, 0, -90)
+        robot_controller.goto(x-37, y-25, 0, -90)
         robot_controller.goto(x, y, 45, -90)
         return
                                          
@@ -59,25 +66,54 @@ class DominoController(Controller):
         """Dropzone_string freshly parsed from yaml file."""
         x = float(dropzone_string.split(",")[0]) + 10
         y = float(dropzone_string.split(",")[1]) - 10
+        place_flat_no_rotate = False
         try:
-            rotate = float(dropzone_string.split(",")[2])
+            z = float(dropzone_string.split(",")[2])
         except IndexError:
-            rotate = None
+            z = self.domino_place_height
+        try:
+            gripper_angle_degrees = float(dropzone_string.split(",")[3])
+        except IndexError:
+            gripper_angle_degrees = -1
         # rotate tells us to rotate the domino once it is flat on the
-        # groupd. This necessarily means we should place it flat on the ground
+        # ground. This necessarily means we should place it flat on the ground
+        try:
+            rotate = float(dropzone_string.split(",")[4])
+        except IndexError:
+            rotate = False
+        robot_controller.place(x, y, z, gripper_angle_degrees)
         if rotate:
-            self.place_drop(robot_controller, x, y, 0, -90)
             self.rotate_domino(robot_controller, x, y)
-        else:
-            robot_controller.place(x, y, self.domino_place_height, -1)
+
+
+    # FIXME: extract common logic
+    def move_arm(self, robot_controller, movezone_string):
+        try:
+            x = float(movezone_string.split(",")[0]) + 10
+        except:
+            robot_controller.rest()
+            return
+
+        y = float(movezone_string.split(",")[1]) - 10
+        place_flat_no_rotate = False
+        try:
+            z = float(movezone_string.split(",")[2])
+        except IndexError:
+            z = self.domino_place_height
+        try:
+            gripper_angle_degrees = float(movezone_string.split(",")[3])
+        except IndexError:
+            gripper_angle_degrees = -1
+        robot_controller.goto(x, y, z, gripper_angle_degrees)
+        
 
 
     def knock_dominos_over(self, robot_controller, dropzone_string):
         """Knock over domino at specified dropzone."""
         x = float(dropzone_string.split(",")[0])
         y = float(dropzone_string.split(",")[1])
-        robot_controller.goto(x+5, y-35, 15, 0)
+        robot_controller.goto(x+5, y-35, 15, -90)
         robot_controller.grip()
-        robot_controller.goto(x+5, y, 20, 0)
-        robot_controller.goto(x+5, y-30, 15, 0)
+        robot_controller.goto(x+5, y, 20, -90)
+        robot_controller.goto(x+5, y-30, 15, -90)
         robot_controller.rest()

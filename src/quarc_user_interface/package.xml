@@ -4,7 +4,7 @@
   <version>0.0.0</version>
   <description>The quarc_user_interface package</description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <maintainer email="ee364d-list@lists.r2labs.us">quarc</maintainer>
 
   <!-- TODO: consensus -->
