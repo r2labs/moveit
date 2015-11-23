@@ -114,11 +114,14 @@ class SimpleUserInterface(object):
         self.red_bucket = (110, 0)
         self.green_bucket = (185, 0)
         self.blue_bucket = (260, 0)
+        self.rest();
+        sleep(2.0);
         while len(self.vision_objects) > 0:
             obj = sorted(self.vision_objects, key=lambda x: x.cx)[0]
             x, y = getattr(self, '%s_bucket' % obj.color)
             self.pick(200-obj.cx, obj.cy + 50, 0, -90, vertical_buffer_height=115)
             self.place(x, y, 140, -90)
+            sleep(2.0);
         self.rest()
 
 
