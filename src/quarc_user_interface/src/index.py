@@ -63,6 +63,7 @@ class SimpleUserInterface(object):
         self.vision_objects = []
         self.movement_time = 1.0
         self.rest_x = 140
+        self.last_x = self.rest_x
         self.rest_y = 0
         self.rest_z = 150
         self.rest_gripper_angle_degrees = -90
@@ -103,10 +104,7 @@ class SimpleUserInterface(object):
 
     @cherrypy.expose
     def exec_routine(self, routine_type, routine_name):
-        try:
-            routine = self.get_routine(routine_type, routine_name)
-        except:
-            logging.exception('Unknown routine type or name')
+        routine = self.get_routine(routine_type, routine_name)
         controllers.DominoController(self).doit(routine)
 
     @cherrypy.expose
@@ -123,17 +121,16 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def sort(self):
         """Sort objects on the table into bins of identifying color."""
-        self.red_bucket = (110, 0)
-        self.green_bucket = (185, 0)
-        self.blue_bucket = (260, 0)
+        self.red_bucket = (140, 0)
+        self.green_bucket = (230, 0)
+        self.blue_bucket = (-230, 0)
         self.rest();
-        sleep(2.0);
         while len(self.vision_objects) > 0:
             obj = sorted(self.vision_objects, key=lambda x: x.cx)[0]
             x, y = getattr(self, '%s_bucket' % obj.color)
             self.pick(200-obj.cx, obj.cy + 50, 0, -90, vertical_buffer_height=115)
             self.place(x, y, 140, -90)
-            sleep(2.0);
+            time.sleep(1.0);
         self.rest()
 
 
@@ -184,6 +181,7 @@ class SimpleUserInterface(object):
 
     @cherrypy.expose
     def goto(self, x, y, z, gripper_angle_degrees=-90, no_sleep=False, sleep=None):
+        self.last_x = x
         """Signal ros to move the arm to """
         if self.CANCELED:
             self.CANCELED = False
@@ -214,26 +212,30 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def pick(self, x, y, z, gripper_angle_degrees, vertical_buffer_height=60):
         """Signal the arm to pick up an object at the specified coordinates."""
+	z = float(z)
         self.ungrip(sleep=0)
-        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees, sleep=1.2)
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
         self.goto(x, y, z, gripper_angle_degrees)
-        self.grip(sleep=0.5)
+        self.grip()
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 
     @cherrypy.expose
     def rest(self):
         """Return the robot to rest position."""
-        self.goto(self.rest_x, self.rest_y, self.rest_z,
-                  self.rest_gripper_angle_degrees, sleep=0)
-        self.ungrip(sleep=0)
+        self.goto(self.rest_x if self.last_x > 0 else -self.rest_x, 
+                  self.rest_y, self.rest_z,
+                  self.rest_gripper_angle_degrees)
+        self.ungrip()
 
 
     @cherrypy.expose
-    def place(self, x, y, z, gripper_angle_degrees, vertical_buffer_height=60):
+    def place(self, x, y, z, gripper_angle_degrees=-90, vertical_buffer_height=60):
         """Signal the arm to place an object at the specified coordinates."""
+        z = float(z)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        self.goto(x, y, z, gripper_angle_degrees, sleep=0.5)
+        self.goto(x, y, z, gripper_angle_degrees)
+	self.ungrip()
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 

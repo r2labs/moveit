@@ -40,7 +40,7 @@ class DominoController(Controller):
             if routine.get('leave_standing'):
                 self.robot_controller.rest()
             else:
-                self.knock_dominos_over(dropzones[-1])
+                self.knock_dominos_over(routine.get('dropzones',[])[-1])
             
 
     def rotate_domino(self, x, y):
@@ -65,26 +65,26 @@ class DominoController(Controller):
         self.robot_controller.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 
-    def parse_yaml_line(string):
+    def parse_yaml_line(self, string):
         try:
-            x = float(movezone_string.split(",")[0]) + 10
-            y = float(dropzone_string.split(",")[1]) - 10
+            x = float(string.split(",")[0]) + 10
+            y = float(string.split(",")[1]) - 10
             try:
-                z = float(dropzone_string.split(",")[2])
+                z = float(string.split(",")[2])
             except IndexError:
                 z = self.domino_place_height
             try:
-                gripper_angle_degrees = float(dropzone_string.split(",")[3])
+                gripper_angle_degrees = float(string.split(",")[3])
             except IndexError:
                 gripper_angle_degrees = -1
             # rotate tells us to rotate the domino once it is flat on the
             # ground. This necessarily means we should place it flat on the ground
             try:
-                rotate = float(dropzone_string.split(",")[4])
+                rotate = float(string.split(",")[4])
             except IndexError:
                 rotate = False
         except ValueError:
-            if movezone_string == 'rest':
+            if string == 'rest':
                 x = robot_controller.rest_x
                 y = robot_controller.rest_y
                 z = robot_controller.rest_z
@@ -94,14 +94,14 @@ class DominoController(Controller):
 
     def place_domino(self, dropzone_string):
         """Dropzone_string freshly parsed from yaml file."""
-        x, y, z, gripper_angle_degrees, rotate = parse_yaml_line(dropzone_string)
+        x, y, z, gripper_angle_degrees, rotate = self.parse_yaml_line(dropzone_string)
         self.robot_controller.place(x, y, z, gripper_angle_degrees)
         if rotate:
             self.rotate_domino(x, y)
 
 
     def move_arm(self, movezone_string):
-        x, y, z, gripper_angle_degrees, rotate = parse_yaml_line(dropzone_string)
+        x, y, z, gripper_angle_degrees, rotate = self.parse_yaml_line(movezone_string)
         self.robot_controller.goto(x, y, z, gripper_angle_degrees)
         
 
