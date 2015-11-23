@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import cherrypy
-import os, string, sys
-
+import os, string, sys, yaml
 from jinja2 import Environment, FileSystemLoader
-env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')))
 
 import rospy
 from quarc_user_interface.msg import user_input
@@ -14,11 +12,9 @@ from quarc_user_interface.msg import set_gripper
 from quarc_vision.msg import vision_object
 
 import controllers
+import time
 
-import os
-import yaml
 import logging
-from time import sleep
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
@@ -33,32 +29,44 @@ class CoordinatesInvalidException(Exception):
 class CancelActionException(Exception):
     pass
 
+
 class VisionObject:
+
     def __init__(self, points, radius, color, cx, cy):
         self.points = points
         self.color = color
         self.radius = radius
         self.cx = cx
         self.cy = cy
+
+
     def json(self):
         return str(self.__dict__).replace("'", '"')
 
-class SimpleUserInterface(object):
 
+class SimpleUserInterface(object):
 
     def __init__(self):
         """Initialize ros publishers and node."""
         self.CANCELED = False
-        self.site_header = env.get_template('site_header.html').render()
-        self.site_end = env.get_template('site_end.html').render()
+        self.env = Environment(
+            loader=FileSystemLoader(
+                os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'templates')))
+        self.site_header = self.env.get_template('site_header.html').render()
+        self.site_end = self.env.get_template('site_end.html').render()
         self.pp_publisher = rospy.Publisher('user_interface', user_input, queue_size=10)
         self.goto_publisher = rospy.Publisher('set_position', set_position, queue_size=10)
         self.grip_publisher = rospy.Publisher('set_gripper', set_gripper, queue_size=10)
         rospy.init_node('quarc_user_interface')
-        # rospy.init_node('quarc_vision', anonymous=True)
         self.vision_subscriber = rospy.Subscriber("vision_object", vision_object, self.vision_callback)
-        self.rest()
         self.vision_objects = []
+        self.movement_time = 1.0
+        self.rest_x = 140
+        self.rest_y = 0
+        self.rest_z = 150
+        self.rest_gripper_angle_degrees = -90
+        self.rest()
 
 
     def vision_callback(self, msg):
@@ -68,16 +76,16 @@ class SimpleUserInterface(object):
             points = []
             for j in range(msg.numpoints[i]):
                 points.append([msg.x[pidx], msg.y[pidx]])
-                pidx = pidx+1
-            self.vision_objects.append(VisionObject(points, msg.radius[i], msg.color[i], msg.cx[i], msg.cy[i]))
+                pidx += 1
+                self.vision_objects.append(
+                    VisionObject(points, msg.radius[i],
+                                 msg.color[i], msg.cx[i], msg.cy[i]))
+
 
     @cherrypy.expose
     def vision(self):
-        ret = '{"items": ['
-        strs = [str(v.__dict__).replace("'", '"') for v in self.vision_objects]
-        ret += ",".join(strs)
-        ret += "]}"
-        return ret
+        return '{"items": [%s]}' % \
+            ','.join([str(v.__dict__).replace("'", '"') for v in self.vision_objects])
 
 
     def siteify(self, body):
@@ -95,17 +103,21 @@ class SimpleUserInterface(object):
 
     @cherrypy.expose
     def exec_routine(self, routine_type, routine_name):
-        # TODO: complete use of design patterns, finish the meta code
-        if routine_type == 'dominos':
+        try:
             routine = self.get_routine(routine_type, routine_name)
-            controller = controllers.DominoController()
-            controller.doit(routine, self)
+        except:
+            logging.exception('Unknown routine type or name')
+        controllers.DominoController(self).doit(routine)
 
     @cherrypy.expose
     def cancel(self):
         self.CANCELED = True
-        sleep(3)
+        time.sleep(3)
         self.CANCELED = False
+
+
+    def canceled(self):
+        return self.CANCELED
 
 
     @cherrypy.expose
@@ -122,16 +134,17 @@ class SimpleUserInterface(object):
         self.rest()
 
 
-    @cherrypy.expose
-    def clear_color(self, destination, *colors):
-        """Remove all objects of specified color."""
-        x, y = destination
-        for color in colors:
-            while len(self.vision_objects) > 0:
-                obj = filter(lambda obj: obj.color == color, self.vision_objects).sort(key=lambda x: x.cx)[0]
-                self.pick(200 - obj.cx, obj.cy + 60, 0, -90, vertical_buffer_height=30)
-                self.place(x, y, 140, -90)
-        self.rest()
+    # @cherrypy.expose
+    # def clear_color(self, destination, *colors):
+    #     """Remove all objects of specified color."""
+    #     x, y = destination
+    #     for color in colors:
+    #         while len(self.vision_objects) > 0:
+    #             obj = filter(lambda obj: obj.color == color, self.vision_objects).sort(key=lambda x: x.cx)[0]
+    #             self.pick(200 - obj.cx, obj.cy + 60, 0, -90, vertical_buffer_height=30)
+    #             self.place(x, y, 140, -90)
+    #     self.rest()
+
 
     def pp_publish(self):
         """Publish the pick and place action entered into index.html"""
@@ -158,23 +171,16 @@ class SimpleUserInterface(object):
 
 
     @cherrypy.expose
-    def grip(self, gripper_percent = 1.0, no_sleep=False):
+    def grip(self, gripper_percent = 1.0, no_sleep=False, sleep=None):
         """Signal ros to set the gripper percent."""
         msg = set_gripper()
         msg.gripper_percent = float(gripper_percent)
         self.grip_publisher.publish(msg)
-        if not no_sleep:
-            sleep(1)
+        self.sleep_sequence(no_sleep, sleep)
 
 
     @cherrypy.expose
-    def ungrip(self, no_sleep=False):
-        """Signal ros to open the gripper."""
-        self.grip(0.0, no_sleep)
-
-
-    @cherrypy.expose
-    def goto(self, x, y, z, gripper_angle_degrees=-90, no_sleep=False):
+    def goto(self, x, y, z, gripper_angle_degrees=-90, no_sleep=False, sleep=None):
         """Signal ros to move the arm to """
         if self.CANCELED:
             self.CANCELED = False
@@ -185,49 +191,46 @@ class SimpleUserInterface(object):
         msg.z = float(z)
         msg.ga_d = float(gripper_angle_degrees)
         self.goto_publisher.publish(msg)
-        if not no_sleep:
-            sleep(1)
+        self.sleep_sequence(no_sleep, sleep)
+
+
+    def sleep_sequence(self, no_sleep, sleep_ratio):
+        if no_sleep:
+            return
+        if sleep_ratio is None:
+            sleep_ratio = 1.0
+        time.sleep(self.movement_time * sleep_ratio)
 
 
     @cherrypy.expose
-    def rest(self):
-        """Return the robot to rest position."""
-        self.goto(140, 0, 150, -90, no_sleep=True)
-        self.ungrip(no_sleep=True)
+    def ungrip(self, no_sleep=False, sleep=None):
+        """Signal ros to open the gripper."""
+        self.grip(0.0, no_sleep, sleep)
 
 
     @cherrypy.expose
     def pick(self, x, y, z, gripper_angle_degrees, vertical_buffer_height=60):
         """Signal the arm to pick up an object at the specified coordinates."""
-        x = float(x)
-        y = float(y)
-        z = float(z)
-        self.ungrip(no_sleep=True)
-        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        sleep(0.2)
+        self.ungrip(sleep=0)
+        self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees, sleep=1.2)
         self.goto(x, y, z, gripper_angle_degrees)
-        self.grip(no_sleep=True)
-        sleep(0.5)
+        self.grip(sleep=0.5)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
-    @cherrypy.expose
-    def dinodrop(self):
-        """Signal the arm to place an object in a specific location."""
-        self.goto(-140, 0, 150, -90)
-        sleep(0.5)
-        self.ungrip()
 
     @cherrypy.expose
-    def place(self, x, y, z, gripper_angle_degrees):
+    def rest(self):
+        """Return the robot to rest position."""
+        self.goto(self.rest_x, self.rest_y, self.rest_z,
+                  self.rest_gripper_angle_degrees, sleep=0)
+        self.ungrip(sleep=0)
+
+
+    @cherrypy.expose
+    def place(self, x, y, z, gripper_angle_degrees, vertical_buffer_height=60):
         """Signal the arm to place an object at the specified coordinates."""
-        vertical_buffer_height = 60.0
-        x = float(x)
-        y = float(y)
-        z = float(z)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        self.goto(x, y, z, gripper_angle_degrees)
-        self.ungrip(no_sleep=True)
-        sleep(0.5)
+        self.goto(x, y, z, gripper_angle_degrees, sleep=0.5)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 
@@ -245,11 +248,10 @@ class SimpleUserInterface(object):
             cherrypy.session['gripper_open'] = True
             self.pp_publish()
         except CoordinatesInvalidException:
-            # try, try again
             pick_coordinates = '(x,y,z)'
             place_coordinates = '(x,y,z)'
 
-        index = env.get_template('index.html') \
+        index = self.env.get_template('index.html') \
                    .render(action='index',
                            default_pick_text=pick_coordinates,
                            default_place_text=place_coordinates,
@@ -278,11 +280,10 @@ class SimpleUserInterface(object):
             cherrypy.session['gripper_open'] = gripper_open
             self.pp_publish()
         except CoordinatesInvalidException:
-            # try, try again
             pick_coordinates = '(x,y,z)'
             place_coordinates = '(x,y,z)'
 
-        index = env.get_template('debug.html') \
+        index = self.env.get_template('debug.html') \
                    .render(action='debug',
                            default_pick_text=pick_coordinates,
                            default_place_text=place_coordinates,
@@ -303,6 +304,7 @@ class SimpleUserInterface(object):
 def CORS():
     cherrypy.response.headers["Access-Control-Allow-Origin"] = "*"
 
+
 if __name__ == '__main__':
     conf = {
         '/': {
@@ -310,18 +312,10 @@ if __name__ == '__main__':
             'tools.staticdir.root': os.path.dirname(os.path.abspath(__file__)),
             'tools.CORS.on': True
         },
-        # '/static': {
-        #     'tools.staticdir.on': True,
-        #     'tools.staticdir.dir': './public'
-        # },
         '/images':{
              'tools.staticdir.on': True,
              'tools.staticdir.dir': '../imgs'
         },
-        # '/favicon.ico':{
-        #      'tools.staticfile.on': True,
-        #      'tools.staticfile.filename': '/images/favicon.ico'
-        # }
     }
     cherrypy.tools.CORS = cherrypy.Tool('before_handler', CORS)
     cherrypy.config.update({'server.socket_host': '127.0.0.1'})
