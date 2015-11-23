@@ -12,7 +12,7 @@ class DominoController(Controller):
 
 
     def __init__(self):
-        self.domino_place_height = 30
+        self.domino_place_height = 20
 
 
     def doit(self, routine, robot_controller):
@@ -36,7 +36,7 @@ class DominoController(Controller):
         robot_controller.goto(x+30, y-22, 0, -90)
         robot_controller.goto(x-25, y-18, 0, -90)
         robot_controller.goto(x-33, y-17, 0, -90)
-        robot_controller.goto(x-35, y-13, 0, -90)
+        robot_controller.goto(x-37, y-10, 0, -90)
         robot_controller.goto(x, y, 45, -90)
         return
                                          
@@ -69,15 +69,15 @@ class DominoController(Controller):
             self.place_drop(robot_controller, x, y, 0, -90)
             self.rotate_domino(robot_controller, x, y)
         else:
-            robot_controller.place(x, y, self.domino_place_height, 0)
+            robot_controller.place(x, y, self.domino_place_height, -1)
 
 
     def knock_dominos_over(self, robot_controller, dropzone_string):
         """Knock over domino at specified dropzone."""
         x = float(dropzone_string.split(",")[0])
         y = float(dropzone_string.split(",")[1])
-        robot_controller.goto(x+5, y-35, 35, 0)
+        robot_controller.goto(x+5, y-35, 15, 0)
         robot_controller.grip()
-        robot_controller.goto(x+5, y, 35, -5)
-        robot_controller.goto(x+5, y-35, 35, -5)
+        robot_controller.goto(x+5, y, 20, 0)
+        robot_controller.goto(x+5, y-30, 15, 0)
         robot_controller.rest()

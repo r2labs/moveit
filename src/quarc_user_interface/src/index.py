@@ -34,14 +34,17 @@ class CancelActionException(Exception):
     pass
 
 class VisionObject:
-    def __init__(self, points, radius, color):
-        self.points = points;
-        self.color = color;
+    def __init__(self, points, radius, color, cx, cy):
+        self.points = points
+        self.color = color
         self.radius = radius
+        self.cx = cx
+        self.cy = cy
     def json(self):
         return str(self.__dict__).replace("'", '"')
 
 class SimpleUserInterface(object):
+
 
     def __init__(self):
         """Initialize ros publishers and node."""
@@ -57,15 +60,16 @@ class SimpleUserInterface(object):
         self.rest()
         self.vision_objects = []
 
+
     def vision_callback(self, msg):
         self.vision_objects = []
         pidx = 0
-        for i in range(msg.numpolys):
+        for i in range(len(msg.cx)):
             points = []
             for j in range(msg.numpoints[i]):
                 points.append([msg.x[pidx], msg.y[pidx]])
                 pidx = pidx+1
-            self.vision_objects.append(VisionObject(points, msg.radius[i], msg.color[i]))
+            self.vision_objects.append(VisionObject(points, msg.radius[i], msg.color[i], msg.cx[i], msg.cy[i]))
 
     @cherrypy.expose
     def vision(self):
@@ -103,18 +107,40 @@ class SimpleUserInterface(object):
         sleep(3)
         self.CANCELED = False
 
+
+    @cherrypy.expose
+    def sort(self):
+        """Sort objects on the table into bins of identifying color."""
+        self.red_bucket = (110, 0)
+        self.green_bucket = (185, 0)
+        self.blue_bucket = (260, 0)
+        while len(self.vision_objects) > 0:
+            obj = sorted(self.vision_objects, key=lambda x: x.cx)[0]
+            x, y = getattr(self, '%s_bucket' % obj.color)
+            self.pick(200-obj.cx, obj.cy + 50, 0, -90, vertical_buffer_height=115)
+            self.place(x, y, 140, -90)
+        self.rest()
+
+
+    @cherrypy.expose
+    def clear_color(self, destination, *colors):
+        """Remove all objects of specified color."""
+        x, y = destination
+        for color in colors:
+            while len(self.vision_objects) > 0:
+                obj = filter(lambda obj: obj.color == color, self.vision_objects).sort(key=lambda x: x.cx)[0]
+                self.pick(200 - obj.cx, obj.cy + 60, 0, -90, vertical_buffer_height=30)
+                self.place(x, y, 140, -90)
+        self.rest()
+
     def pp_publish(self):
-        pass
-
-
-    # def pp_publish(self):
-    #     """Publish the pick and place action entered into index.html"""
-    #     # pick_X, pick_Y, pick_Z = cherrypy.session['raw'][0]
-    #     # place_X, place_Y, place_Z = cherrypy.session['raw'][1]
-    #     self.pick(*cherrypy.session['raw'][0], -90)
-    #     self.place(*cherrypy.session['raw'][0], -90)
-    #     # msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
-    #     # self.pp_publisher.publish(msg)
+        """Publish the pick and place action entered into index.html"""
+        pick_X, pick_Y, pick_Z = cherrypy.session['raw'][0]
+        place_X, place_Y, place_Z = cherrypy.session['raw'][1]
+        self.pick(pick_X, pick_Y, pick_Z, -90)
+        self.place(place_X, place_Y, place_Z, -90)
+        msg.gripper_open = cherrypy.session['gripper_open'] == 'on'
+        self.pp_publisher.publish(msg)
 
 
     def parse_coordinates(self, coordinates):
@@ -148,22 +174,16 @@ class SimpleUserInterface(object):
 
 
     @cherrypy.expose
-    def goto(self, x, y, z, gripper_angle_degrees = -90, no_sleep=False):
+    def goto(self, x, y, z, gripper_angle_degrees=-90, no_sleep=False):
         """Signal ros to move the arm to """
         if self.CANCELED:
             self.CANCELED = False
             raise CancelActionException()
         msg = set_position()
-        try:
-            msg.x = float(x)
-            msg.y = float(y)
-            msg.z = float(z)
-            msg.ga_d = float(gripper_angle_degrees)
-        except:
-            msg.x = x
-            msg.y = y
-            msg.z = z
-            msg.ga_d = gripper_angle_degrees
+        msg.x = float(x)
+        msg.y = float(y)
+        msg.z = float(z)
+        msg.ga_d = float(gripper_angle_degrees)
         self.goto_publisher.publish(msg)
         if not no_sleep:
             sleep(1)
@@ -172,21 +192,22 @@ class SimpleUserInterface(object):
     @cherrypy.expose
     def rest(self):
         """Return the robot to rest position."""
-        self.goto(-140, 0, 120, 0)
-        self.ungrip()
+        self.goto(140, 0, 150, -90, no_sleep=True)
+        self.ungrip(no_sleep=True)
 
 
     @cherrypy.expose
-    def pick(self, x, y, z, gripper_angle_degrees = -90):
+    def pick(self, x, y, z, gripper_angle_degrees, vertical_buffer_height=60):
         """Signal the arm to pick up an object at the specified coordinates."""
-        vertical_buffer_height = 60
         x = float(x)
         y = float(y)
         z = float(z)
         self.ungrip(no_sleep=True)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
+        sleep(0.2)
         self.goto(x, y, z, gripper_angle_degrees)
-        self.grip()
+        self.grip(no_sleep=True)
+        sleep(0.5)
         self.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
     @cherrypy.expose
@@ -197,7 +218,7 @@ class SimpleUserInterface(object):
         self.ungrip()
 
     @cherrypy.expose
-    def place(self, x, y, z=5.0, gripper_angle_degrees = -90.0):
+    def place(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to place an object at the specified coordinates."""
         vertical_buffer_height = 60.0
         x = float(x)
@@ -222,7 +243,6 @@ class SimpleUserInterface(object):
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
             cherrypy.session['gripper_open'] = True
-            # TODO: re-organize pp_publish
             self.pp_publish()
         except CoordinatesInvalidException:
             # try, try again
@@ -256,7 +276,6 @@ class SimpleUserInterface(object):
             cherrypy.session['place'] = place
             cherrypy.session['path_string'] = path
             cherrypy.session['gripper_open'] = gripper_open
-            # TODO: re-organize pp_publish
             self.pp_publish()
         except CoordinatesInvalidException:
             # try, try again
