@@ -1,0 +1,7 @@
+---
+leave_standing: True
+x: -140
+y: 0
+dropzones:
+  - 0, 230, 0, -90, 1
+

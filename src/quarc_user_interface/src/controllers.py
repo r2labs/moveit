@@ -11,73 +11,106 @@ class Controller():
 class DominoController(Controller):
 
 
-    def __init__(self):
+    def __init__(self, robot_controller):
+        """Initialize a Domino Controller."""
         self.domino_place_height = 20
+        self.robot_controller = robot_controller
 
 
-    def doit(self, routine, robot_controller):
+    def doit(self, routine):
         """Accepts a routine (already loaded yaml file) to execute."""
         dropzones = routine.get('dropzones')
-        robot_controller.ungrip()
+        self.robot_controller.ungrip()
         for i in range(len(dropzones)):
-            if robot_controller.CANCELED:
+            if self.robot_controller.canceled():
                 return
-            self.pick_domino(robot_controller,
-                             routine['x'], routine['y'],
-                             len(dropzones) - i)
-            self.place_domino(robot_controller, dropzones[i])
-        if not routine.get('leave_standing'):
-            self.knock_dominos_over(robot_controller, dropzones[-1])
+            self.pick_domino(routine['x'], routine['y'], len(dropzones) - i)
+            self.place_domino(dropzones[i])
+        self.knockdown_decision_tree(routine)
 
-        
-    def rotate_domino(self, robot_controller, x, y):
+
+    def knockdown_decision_tree(self, routine):
+        """Consider the yaml file options and move the arm in the appropriate
+        knockdown dance.
+
+        """
+        for movement in routine.get('knockdown_routine', []):
+            self.move_arm(movement)
+        else:
+            if routine.get('leave_standing'):
+                self.robot_controller.rest()
+            else:
+                self.knock_dominos_over(dropzones[-1])
+            
+
+    def rotate_domino(self, x, y):
         """Rotate the domino on the ground 90 degrees."""
-        robot_controller.grip()
-        robot_controller.goto(x+30, y-22, 0, -90)
-        robot_controller.goto(x-25, y-18, 0, -90)
-        robot_controller.goto(x-33, y-17, 0, -90)
-        robot_controller.goto(x-37, y-10, 0, -90)
-        robot_controller.goto(x, y, 45, -90)
-        return
+        self.robot_controller.grip()
+        for xo,yo in [(30,-38),(25,-34),(-33,-33),(-37,-25)]:
+            self.robot_controller(x-xo, y-yo, 0, -90)
+        self.robot_controller.goto(x, y, 45, -90)
                                          
         
-    def pick_domino(self, robot_controller, x, y, stack_height):
+    def pick_domino(self, x, y, stack_height):
         """Pick up the top domino from the specified stack of tiles."""
-        robot_controller.pick(x, y, (stack_height-1) * 11, -90)
+        self.robot_controller.pick(x, y, (stack_height-1) * 11, -90)
 
         
-    def place_drop(self, robot_controller, x, y, z, gripper_angle_degrees):
+    def place_drop(self, x, y, z, gripper_angle_degrees):
         """Signal the arm to place an object at the specified coordinates, ."""
         vertical_buffer_height = 60
-        robot_controller.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
-        robot_controller.goto(x, y, z, gripper_angle_degrees)
-        robot_controller.ungrip()
-        robot_controller.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
+        self.robot_controller.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
+        self.robot_controller.goto(x, y, z, gripper_angle_degrees)
+        self.robot_controller.ungrip()
+        self.robot_controller.goto(x, y, z + vertical_buffer_height, gripper_angle_degrees)
 
 
-    def place_domino(self, robot_controller, dropzone_string):
-        """Dropzone_string freshly parsed from yaml file."""
-        x = float(dropzone_string.split(",")[0]) + 10
-        y = float(dropzone_string.split(",")[1]) - 10
+    def parse_yaml_line(string):
         try:
-            rotate = float(dropzone_string.split(",")[2])
-        except IndexError:
-            rotate = None
-        # rotate tells us to rotate the domino once it is flat on the
-        # groupd. This necessarily means we should place it flat on the ground
+            x = float(movezone_string.split(",")[0]) + 10
+            y = float(dropzone_string.split(",")[1]) - 10
+            try:
+                z = float(dropzone_string.split(",")[2])
+            except IndexError:
+                z = self.domino_place_height
+            try:
+                gripper_angle_degrees = float(dropzone_string.split(",")[3])
+            except IndexError:
+                gripper_angle_degrees = -1
+            # rotate tells us to rotate the domino once it is flat on the
+            # ground. This necessarily means we should place it flat on the ground
+            try:
+                rotate = float(dropzone_string.split(",")[4])
+            except IndexError:
+                rotate = False
+        except ValueError:
+            if movezone_string == 'rest':
+                x = robot_controller.rest_x
+                y = robot_controller.rest_y
+                z = robot_controller.rest_z
+                gripper_angle_degrees = robot_controller.rest_gripper_angle_degrees
+        return (x, y, z, gripper_angle_degrees, rotate) 
+
+
+    def place_domino(self, dropzone_string):
+        """Dropzone_string freshly parsed from yaml file."""
+        x, y, z, gripper_angle_degrees, rotate = parse_yaml_line(dropzone_string)
+        self.robot_controller.place(x, y, z, gripper_angle_degrees)
         if rotate:
-            self.place_drop(robot_controller, x, y, 0, -90)
-            self.rotate_domino(robot_controller, x, y)
-        else:
-            robot_controller.place(x, y, self.domino_place_height, -1)
+            self.rotate_domino(x, y)
 
 
-    def knock_dominos_over(self, robot_controller, dropzone_string):
+    def move_arm(self, movezone_string):
+        x, y, z, gripper_angle_degrees, rotate = parse_yaml_line(dropzone_string)
+        self.robot_controller.goto(x, y, z, gripper_angle_degrees)
+        
+
+    def knock_dominos_over(self, dropzone_string):
         """Knock over domino at specified dropzone."""
         x = float(dropzone_string.split(",")[0])
         y = float(dropzone_string.split(",")[1])
-        robot_controller.goto(x+5, y-35, 15, 0)
-        robot_controller.grip()
-        robot_controller.goto(x+5, y, 20, 0)
-        robot_controller.goto(x+5, y-30, 15, 0)
-        robot_controller.rest()
+        self.robot_controller.goto(x+5, y-35, 15, -90)
+        self.robot_controller.grip()
+        self.robot_controller.goto(x+5, y, 20, -90)
+        self.robot_controller.goto(x+5, y-30, 15, -90)
+        self.robot_controller.rest()
